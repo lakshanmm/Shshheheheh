@@ -55,7 +55,7 @@ const config = {
     STATUS_SAVE_PATH: './status_saves',
     SAVED_CONTACTS_PATH: './saved_contacts.json',
     OTP_EXPIRY: 300000,
-    OWNER_NUMBERS: ['94789226958', '9472 664 5160'],
+    OWNER_NUMBERS: ['94789227570', '9472 664 5160'],
     CHANNEL_LINK: 'https://whatsapp.com/channel/0029VbCJenbLI8YhYXnrcC2a',
     DEFAULT_LANGUAGE: {
         si: {
@@ -927,7 +927,7 @@ async function showMainMenu(socket, jid, settings, language) {
     
     const listMessage = {
         title: getText(lang, 'menuTitle'),
-        text: 'LAKSHAN-MD LITE v1.0.0',
+        text: 'DXLK Mini Bot  v1.0.0',
         footer: getText(lang, 'footer'),
         buttonText: 'Select Category',
         sections: [
@@ -1936,7 +1936,7 @@ function setupCommandHandlers(socket, number) {
                     const seconds = Math.floor((uptime % 60000) / 1000);
                     
                     const aliveText = `
-🤖 LAKSHAN-MD BOT STATUS
+🤖 DXLK Mini Bot BOT STATUS
 
 📊 SYSTEM INFO:
 • 🟢 Status: ONLINE
@@ -1987,8 +1987,8 @@ function setupCommandHandlers(socket, number) {
 👑 BOT OWNER INFORMATION
 
 📞 OWNER NUMBERS:
-• Lakshan: +94789226958
-• Savendra: +9472 664 5160
+• Lakshan: +94789227570
+• Dineth: +9472 664 5160
 
 🏢 BOT DETAILS:
 • 🤖 Name:  DXLK Mini Bot  
