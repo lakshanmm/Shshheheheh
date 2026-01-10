@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>𝕃𝕒𝕜𝕚 𝕄𝔻</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    :root {
+      --primary-cyan: #00f2ff;
+      --primary-red: #ff0000;
+      --neon-blue: #00bfff;
+      --dark-bg: #0a0a0a;
+      --card-bg: rgba(10, 10, 10, 0.85);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: var(--dark-bg);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .video-background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      opacity: 0.4;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, rgba(0, 0, 0, 0.9) 30%, rgba(0, 15, 30, 0.8) 100%);
+      z-index: 2;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+      z-index: 10;
+      position: relative;
+    }
+
+    .main-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 
+        0 0 30px rgba(0, 242, 255, 0.3),
+        0 0 60px rgba(255, 0, 0, 0.2),
+        inset 0 0 20px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 242, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .main-card::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, var(--primary-cyan), var(--primary-red), var(--primary-cyan));
+      z-index: -1;
+      border-radius: 22px;
+      opacity: 0.3;
+      animation: borderGlow 3s linear infinite;
+    }
+
+    @keyframes borderGlow {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 0.5; }
+    }
+
+    .logo-container {
+      text-align: center;
+      margin-bottom: 25px;
+      position: relative;
+    }
+
+    .logo-icon {
+      font-size: 50px;
+      color: var(--primary-red);
+      margin-bottom: 15px;
+      text-shadow: 0 0 15px var(--primary-red);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .title {
+      color: var(--primary-cyan);
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 5px;
+      text-shadow: 0 0 10px rgba(0, 242, 255, 0.7);
+      letter-spacing: 1px;
+      animation: flicker 3s infinite alternate;
+    }
+
+    .subtitle {
+      color: #ffffff;
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 25px;
+    }
+
+    .credits {
+      color: var(--neon-blue);
+      font-size: 12px;
+      margin-bottom: 30px;
+      text-align: center;
+      font-style: italic;
+    }
+
+    .instructions {
+      background: rgba(0, 20, 40, 0.4);
+      border-left: 3px solid var(--primary-cyan);
+      padding: 15px;
+      border-radius: 0 10px 10px 0;
+      margin-bottom: 25px;
+    }
+
+    .instructions h4 {
+      color: var(--primary-cyan);
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .instructions p {
+      color: #ffffff;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .input-group {
+      margin-bottom: 25px;
+    }
+
+    .input-label {
+      display: block;
+      color: var(--primary-cyan);
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .input-wrapper {
+      display: flex;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+    }
+
+    .number-input {
+      flex: 1;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.95);
+      border: none;
+      font-size: 16px;
+      color: #000;
+      outline: none;
+    }
+
+    .number-input::placeholder {
+      color: #666;
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, var(--primary-red), #ff3366);
+      color: white;
+      border: none;
+      padding: 0 25px;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .submit-btn:hover {
+      background: linear-gradient(135deg, #ff3366, var(--primary-red));
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+    }
+
+    .submit-btn:active {
+      transform: scale(0.98);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      margin-top: 25px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .channel-btn {
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      color: white;
+    }
+
+    .owner-btn {
+      background: linear-gradient(135deg, var(--primary-cyan), #0099cc);
+      color: black;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .status-message {
+      text-align: center;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+      display: none;
+      background: rgba(0, 40, 80, 0.5);
+      color: white;
+      font-weight: 600;
+    }
+
+    .code-display {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid var(--primary-cyan);
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      display: none;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .code-display:hover {
+      box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+    }
+
+    .code-label {
+      color: var(--primary-red);
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .code-value {
+      color: white;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      font-family: monospace;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    .sound-control {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      width: 55px;
+      height: 55px;
+      background: rgba(0, 191, 255, 0.8);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 0 20px rgba(0, 242, 255, 0.7);
+      transition: all 0.3s;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .sound-control:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 25px rgba(0, 242, 255, 0.9);
+    }
+
+    .sound-control i {
+      color: white;
+      font-size: 22px;
+    }
+
+    .cyber-line {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary-cyan), transparent);
+      margin: 25px 0;
+      width: 100%;
+    }
+
+    .neon-dots {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .dot {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: var(--primary-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 5px var(--primary-cyan), 0 0 10px var(--primary-cyan);
+      animation: float 15s linear infinite;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) translateX(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.8;
+      }
+      90% {
+        opacity: 0.8;
+      }
+      100% {
+        transform: translateY(-100px) translateX(20px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes flicker {
+      0%, 18%, 22%, 25%, 53%, 57%, 100% {
+        text-shadow: 0 0 5px var(--primary-cyan),
+                     0 0 10px var(--primary-cyan),
+                     0 0 20px var(--primary-cyan);
+      }
+      20%, 24%, 55% {
+        text-shadow: none;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .main-card {
+        padding: 20px;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+      }
+      
+      .action-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Video Background -->
+  <video class="video-background" id="bgVideo" autoplay muted loop>
+    <source src="https://files.catbox.moe/lr2vmg.mp4" type="video/mp4">
+    Your browser does not support HTML5 video.
+  </video>
+  
+  <!-- Overlay -->
+  <div class="overlay"></div>
+  
+  <!-- Neon dots -->
+  <div class="neon-dots" id="dotsContainer"></div>
+  
+  <!-- Sound control -->
+  <div class="sound-control" id="soundControl">
+    <i class="fas fa-volume-mute" id="soundIcon"></i>
+  </div>
+  
+  <!-- Main Container -->
+  <div class="container">
+    <div class="main-card">
+      <!-- Logo -->
+      <div class="logo-container">
+        <div class="logo-icon">
+          <i class="fas fa-robot"></i>
+        </div>
+        <h1 class="title">𝐂ʏʙᴇʀ-𝐅ʀᴇᴇᴅᴏᴍ</h1>
+        <p class="subtitle">𝕃𝕒𝕜𝕚 𝕄𝔻 WhatsApp Bot</p>
+        <p class="credits">CREATED BY CYBER DINU</p>
+      </div>
+      
+      <div class="cyber-line"></div>
+      
+      <!-- Instructions -->
+      <div class="instructions">
+        <h4><i class="fas fa-info-circle"></i> Setup Instructions</h4>
+        <p>1️⃣ Enter your WhatsApp number with country code</p>
+        <p>2️⃣ Click submit to get pairing code</p>
+        <p>3️⃣ Open WhatsApp → Settings → Linked Devices</p>
+        <p>4️⃣ Click "Link a device" and enter the code</p>
+        <p>5️⃣ Bot will connect automatically</p>
+        <p>6️⃣ Use .menu or .alive to test</p>
+      </div>
+      
+      <!-- Input Section -->
+      <div class="input-group">
+        <label class="input-label">
+          <i class="fas fa-mobile-alt"></i> WhatsApp Number
+        </label>
+        <div class="input-wrapper">
+          <input type="number" class="number-input" id="numberInput" placeholder="9476xxxxxxx" minlength="9">
+          <button class="submit-btn" id="submitBtn">
+            <i class="fas fa-paper-plane"></i> SUBMIT
+          </button>
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <a href="https://whatsapp.com/channel/0029VbC8OWEBadmatxpZel15" target="_blank" class="action-btn channel-btn">
+          <i class="fab fa-whatsapp"></i> Channel
+        </a>
+        <a href="https://wa.me/94789227570" target="_blank" class="action-btn owner-btn">
+          <i class="fas fa-user-shield"></i> Owner
+        </a>
+      </div>
+      
+      <!-- Status Message -->
+      <div class="status-message" id="statusMessage">
+        <i class="fas fa-spinner fa-spin"></i> Please wait a while...
+      </div>
+      
+      <!-- Code Display -->
+      <div class="code-display" id="codeDisplay" onclick="copyCode()">
+        <span class="code-label">PAIRING CODE</span>
+        <div class="code-value" id="codeValue">XXXXXX</div>
+        <small style="color: #aaa; margin-top: 10px; display: block;">Click to copy code</small>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+  <script>
+    // DOM Elements
+    const numberInput = document.getElementById('numberInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusMessage = document.getElementById('statusMessage');
+    const codeDisplay = document.getElementById('codeDisplay');
+    const codeValue = document.getElementById('codeValue');
+    const bgVideo = document.getElementById('bgVideo');
+    const soundControl = document.getElementById('soundControl');
+    const soundIcon = document.getElementById('soundIcon');
+    const dotsContainer = document.getElementById('dotsContainer');
+
+    // Initialize neon dots
+    function initNeonDots() {
+      for (let i = 0; i < 100; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.style.left = `${Math.random() * 100}%`;
+        dot.style.animationDelay = `${Math.random() * 15}s`;
+        dot.style.animationDuration = `${10 + Math.random() * 20}s`;
+        dotsContainer.appendChild(dot);
+      }
+    }
+
+    // Sound control
+    soundControl.addEventListener('click', () => {
+      if (bgVideo.muted) {
+        bgVideo.muted = false;
+        soundIcon.classList.remove('fa-volume-mute');
+        soundIcon.classList.add('fa-volume-up');
+      } else {
+        bgVideo.muted = true;
+        soundIcon.classList.remove('fa-volume-up');
+        soundIcon.classList.add('fa-volume-mute');
+      }
+    });
+
+    // Copy code function
+    async function copyCode() {
+      const code = codeValue.innerText;
+      try {
+        await navigator.clipboard.writeText(code);
+        const originalText = codeValue.innerText;
+        codeValue.innerText = 'COPIED!';
+        codeValue.style.color = '#00ff00';
+        
+        setTimeout(() => {
+          codeValue.innerText = originalText;
+          codeValue.style.color = 'white';
+        }, 1500);
+      } catch (err) {
+        alert('Failed to copy code. Please copy manually: ' + code);
+      }
+    }
+
+    // Submit handler
+    submitBtn.addEventListener('click', async () => {
+      const number = numberInput.value.trim();
+      
+      // Validation
+      if (!number) {
+        showError('Please enter your WhatsApp number');
+        return;
+      }
+      
+      if (number.replace(/[^0-9]/g, "").length < 9) {
+        showError('Invalid number. Please include country code');
+        return;
+      }
+      
+      // Format number
+      const cleanNumber = number.replace(/[^0-9]/g, "");
+      numberInput.value = `+${cleanNumber}`;
+      numberInput.style.color = '#000';
+      
+      // Show loading
+      statusMessage.style.display = 'block';
+      codeDisplay.style.display = 'none';
+      
+      try {
+        // Simulate API call (replace with your actual endpoint)
+        // const response = await axios.get(`/code?number=${cleanNumber}`);
+        // const code = response.data.code || "ERROR";
+        
+        // For demo - generate random code
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const demoCode = Math.floor(100000 + Math.random() * 900000);
+        
+        // Display code
+        statusMessage.style.display = 'none';
+        codeValue.innerText = demoCode;
+        codeDisplay.style.display = 'block';
+        
+      } catch (error) {
+        showError('Service unavailable. Please try again later.');
+        console.error(error);
+      }
+    });
+
+    // Error display
+    function showError(message) {
+      statusMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+      statusMessage.style.display = 'block';
+      statusMessage.style.background = 'rgba(255, 0, 0, 0.2)';
+      statusMessage.style.color = '#ff6666';
+      
+      setTimeout(() => {
+        statusMessage.style.display = 'none';
+        statusMessage.style.background = '';
+        statusMessage.style.color = '';
+        statusMessage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Please wait a while...';
+      }, 3000);
+    }
+
+    // Input validation
+    numberInput.addEventListener('input', (e) => {
+      let value = e.target.value.replace(/[^0-9]/g, "");
+      if (value.length > 15) {
+        value = value.substring(0, 15);
+      }
+      e.target.value = value;
+    });
+
+    // Enter key support
+    numberInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitBtn.click();
+      }
+    });
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      initNeonDots();
+      
+      // Add some random effects
+      document.querySelectorAll('.title, .logo-icon').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+          el.style.transform = 'scale(1.05)';
+        });
+        
+        el.addEventListener('mouseleave', () => {
+          el.style.transform = 'scale(1)';
+        });
+      });
+    });
+  </script>
+</body>
+</html>
