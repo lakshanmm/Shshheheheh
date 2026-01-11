@@ -1,4 +1,3 @@
-
 const express = require('express');
 const fs = require('fs-extra');
 const path = require('path');
@@ -11,6 +10,7 @@ const moment = require('moment-timezone');
 const Jimp = require('jimp');
 const crypto = require('crypto');
 const axios = require('axios');
+const { PrismaClient } = require('@prisma/client');
 
 const {
     default: makeWASocket,
@@ -27,90 +27,99 @@ const {
     getAggregateVotesInPollMessage
 } = require('@whiskeysockets/baileys');
 
-// Config with defaults
+// Initialize Prisma for database
+const prisma = new PrismaClient();
+
+// Config with DXLK Mini Bot defaults
 const config = {
+    BOT_NAME: 'DXLK Mini Bot',
+    BOT_LOGO_PATH: './assets/bot-logo.jpg',
+    OWNER_DP_PATH: './assets/owner-dp.jpg',
+    
     AUTO_VIEW_STATUS: 'true',
-    AUTO_LIKE_STATUS: 'true',
+    AUTO_STATUS_REACT: 'true',
+    AUTO_STATUS_SAVE: 'true',
     AUTO_RECORDING: 'true',
-    AUTO_STATUS_SAVE: 'false',
     AUTO_CONTACT_SAVE: 'false',
-    INBOX_BLOCK: 'false',
-    AUTO_EMOJI_REACT: 'true',
-    DELETE_TRACKER: 'true',
-    REACTION_TRACKER: 'true',
-    BUTTONS_ENABLED: 'true',
-    BOT_LOGO_ENABLED: 'true',
-    GROUP_FEATURES: 'true',
+    AUTO_ONLINE: 'true',
+    
+    ANTI_DELETE: 'true',
     CHANNEL_FEATURES: 'true',
-    LANGUAGE: 'si', // 'si' or 'en'
+    GROUP_FEATURES: 'true',
+    
+    BUTTONS_ENABLED: 'true',
+    LIST_BUTTONS_ENABLED: 'true',
+    BOT_LOGO_ENABLED: 'true',
+    
+    LANGUAGE: 'en',
     BOT_MODE: 'public', // 'public', 'private', 'inbox'
     PREFIX: '.',
+    
     MAX_RETRIES: 3,
+    AUTO_RECONNECT: true,
+    
     GROUP_INVITE_LINK: 'https://chat.whatsapp.com/DxbzxckNYUc7o6p8Eg0FEE',
+    CHANNEL_LINK: 'https://whatsapp.com/channel/0029VbCJenbLI8YhYXnrcC2a',
+    
     ADMIN_LIST_PATH: './admin.json',
-    RCD_IMAGE_PATH: './assets/bot-logo.jpg',
     STATUS_SAVE_PATH: './status_saves',
     SAVED_CONTACTS_PATH: './saved_contacts.json',
-    OTP_EXPIRY: 300000,
-    OWNER_NUMBERS: ['94789227570', '9472 664 5160'],
-    CHANNEL_LINK: 'https://whatsapp.com/channel/0029VbCJenbLI8YhYXnrcC2a',
+    
+    OWNER_NUMBERS: ['94789227570', '94762731899'],
+    
+    STATUS_REACT_EMOJI: '❤️',
+    DELETE_TRACKER_DESTINATION: 'owner',
+    
+    // API Endpoints
+    APIS: {
+        LYRICS: 'https://lyrics-api.chamodshadow125.workers.dev/?title=',
+        FACEBOOK: 'https://facebook-downloader.chamodshadow125.workers.dev/api/fb?url=',
+        AI_IMAGE: 'https://ai-pic-whiteshadow.vercel.app/api/unrestrictedai?prompt=',
+        NEWS: 'https://movanest.xyz/v2/news/allsites',
+        YTMP3: 'https://movanest.xyz/v2/ytmp3?url=',
+        SUBTITLE: 'https://movanest.xyz/v2/sublk?url=',
+        YTMP4: 'https://movanest.xyz/v2/ytmp4?url=',
+        TIKTOK: 'https://movanest.xyz/v2/tiktok?url='
+    },
+    
     DEFAULT_LANGUAGE: {
-        si: {
-            menuTitle: '📋 මෙනුව',
-            aliveText: '🤖 බොට් සක්‍රියයි',
-            settingsText: '⚙️ සැකසුම්',
-            errorText: '❌ දෝෂයක් ඇතිවිය',
-            successText: '✅ සාර්ථකයි',
-            ownerOnly: '👑 මෙම අණ පාලකයාට පමණි',
-            groupOnly: '👥 මෙම අණ කණ්ඩායම් සඳහා පමණි',
-            noPermission: '❌ අවසරයක් නැත',
-            footer: '© LAKSHAN-MD | Laki Mini Bot'
-        },
         en: {
-            menuTitle: '📋 Menu',
-            aliveText: '🤖 Bot is alive',
+            menuTitle: '📋 Main Menu',
+            aliveText: '🤖 Bot is running',
             settingsText: '⚙️ Settings',
             errorText: '❌ Error occurred',
             successText: '✅ Success',
             ownerOnly: '👑 Owner only command',
             groupOnly: '👥 Group only command',
             noPermission: '❌ No permission',
-            footer: '©DXLK Mini Bot'
+            footer: '© DXLK Mini Bot'
         }
     },
-    AUTO_LIKE_EMOJI: ['❤️', '🔥', '👍', '🎉', '👏', '😍', '🤩', '💯'],
-    AUTO_REACT_EMOJIS: ['❤️', '🔥', '👍', '😂', '😮', '😢', '👏'],
-    STATUS_EMOJI: '📸',
-    DELETE_TRACKER_DESTINATION: 'owner', // 'owner', 'user', 'same'
-    REACTION_TRACKER_EMOJIS: ['🥹', '😁', '🤣', '🔞']
+    
+    // Stylized characters for channel reactions
+    STYLIZED_CHARS: {
+        'a': '🅐', 'b': '🅑', 'c': '🅒', 'd': '🅓', 'e': '🅔', 'f': '🅕',
+        'g': '🅖', 'h': '🅗', 'i': '🅘', 'j': '🅙', 'k': '🅚', 'l': '🅛',
+        'm': '🅜', 'n': '🅝', 'o': '🅞', 'p': '🅟', 'q': '🅠', 'r': '🅡',
+        's': '🅢', 't': '🅣', 'u': '🅤', 'v': '🅥', 'w': '🅦', 'x': '🅧',
+        'y': '🅨', 'z': '🅩', '0': '⓿', '1': '➊', '2': '➋', '3': '➌',
+        '4': '➍', '5': '➎', '6': '➏', '7': '➐', '8': '➑', '9': '➒'
+    }
 };
 
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN || 'your_github_token' });
-const owner = 'lakshan';
-const repo = 'lakshan-md-sessions';
-
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 const activeSockets = new Map();
 const socketCreationTime = new Map();
 const SESSION_BASE_PATH = './sessions';
-const NUMBER_LIST_PATH = './numbers.json';
 const otpStore = new Map();
 const userSettings = new Map();
 const blockedUsers = new Set();
 const statusSaves = new Map();
 const messageTracker = new Map();
-
-// Stylized characters for channel reactions
-const stylizedChars = {
-    a: '🅐', b: '🅑', c: '🅒', d: '🅓', e: '🅔', f: '🅕', g: '🅖',
-    h: '🅗', i: '🅘', j: '🅙', k: '🅚', l: '🅛', m: '🅜', n: '🅝',
-    o: '🅞', p: '🅟', q: '🅠', r: '🅡', s: '🅢', t: '🅣', u: '🅤',
-    v: '🅥', w: '🅦', x: '🅧', y: '🅨', z: '🅩',
-    '0': '⓿', '1': '➊', '2': '➋', '3': '➌', '4': '➍',
-    '5': '➎', '6': '➏', '7': '➐', '8': '➑', '9': '➒'
-};
+const reconnectAttempts = new Map();
 
 // Create necessary directories
-['./assets', './status_saves', './temp', SESSION_BASE_PATH].forEach(dir => {
+['./assets', './status_saves', './temp', './commands', SESSION_BASE_PATH].forEach(dir => {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
@@ -119,41 +128,21 @@ function getText(language = config.LANGUAGE, key) {
     return config.DEFAULT_LANGUAGE[language]?.[key] || config.DEFAULT_LANGUAGE.en[key] || key;
 }
 
-// Message formatter
+// Message formatter with DXLK branding
 function formatMessage(title, content, language = config.LANGUAGE, customFooter = null) {
     const langText = config.DEFAULT_LANGUAGE[language];
-    const footer = customFooter || langText.footer;
+    const footer = customFooter || `© ${config.BOT_NAME}`;
     
     return `
 ╔══════════════════════════╗
-║      🎭 ${title} 🎭
+║    ✨ ${config.BOT_NAME} ✨
+╠══════════════════════════╣
+║      📌 ${title}
 ╚══════════════════════════╝
 
 ${content}
 
-${footer ? `\n╔══════════════════════════╗\n║      ${footer}\n╚══════════════════════════╝` : ''}`;
-}
-
-// Boxed message creator
-function createBoxedMessage(text, title = null) {
-    const lines = text.split('\n');
-    const maxLength = Math.max(...lines.map(line => line.length), title ? title.length + 4 : 0);
-    
-    let result = '';
-    if (title) {
-        result += '╔' + '═'.repeat(maxLength + 2) + '╗\n';
-        result += `║      ${title}      ║\n`;
-        result += '╠' + '═'.repeat(maxLength + 2) + '╣\n';
-    } else {
-        result += '╔' + '═'.repeat(maxLength + 2) + '╗\n';
-    }
-    
-    for (const line of lines) {
-        const padding = ' '.repeat(maxLength - line.length);
-        result += `║ ${line}${padding} ║\n`;
-    }
-    result += '╚' + '═'.repeat(maxLength + 2) + '╝';
-    return result;
+${footer ? `\n╔══════════════════════════╗\n║     ${footer}\n╚══════════════════════════╝` : ''}`;
 }
 
 // Load/Save user settings
@@ -161,7 +150,8 @@ async function loadUserSettings(number) {
     try {
         const settingsPath = path.join(SESSION_BASE_PATH, `settings_${number}.json`);
         if (fs.existsSync(settingsPath)) {
-            return JSON.parse(await fs.readFile(settingsPath, 'utf8'));
+            const saved = JSON.parse(await fs.readFile(settingsPath, 'utf8'));
+            return { ...config, ...saved };
         }
         return { ...config };
     } catch (error) {
@@ -195,7 +185,7 @@ function checkBotAccess(settings, senderJid, isGroup = false) {
     } else if (mode === 'inbox') {
         return !isGroup;
     }
-    return true; // public mode
+    return true;
 }
 
 // Send message with proper formatting
@@ -207,12 +197,15 @@ async function sendFormattedMessage(socket, jid, title, content, language, optio
         text: formatMessage(title, content, lang)
     };
     
-    // Add image if bot logo is enabled
-    if (settings.BOT_LOGO_ENABLED === 'true' && fs.existsSync(config.RCD_IMAGE_PATH)) {
-        message = {
-            image: { url: config.RCD_IMAGE_PATH },
-            caption: formatMessage(title, content, lang)
-        };
+    // Add image if bot logo is enabled and exists
+    if (settings.BOT_LOGO_ENABLED === 'true') {
+        const logoPath = settings.BOT_LOGO_PATH || config.BOT_LOGO_PATH;
+        if (fs.existsSync(logoPath)) {
+            message = {
+                image: { url: logoPath },
+                caption: formatMessage(title, content, lang)
+            };
+        }
     }
     
     // Add buttons if enabled
@@ -225,6 +218,17 @@ async function sendFormattedMessage(socket, jid, title, content, language, optio
         };
     }
     
+    // Add list buttons if enabled
+    if (settings.LIST_BUTTONS_ENABLED === 'true' && options.sections) {
+        message = {
+            title: title,
+            text: content,
+            footer: getText(lang, 'footer'),
+            buttonText: options.buttonText || 'Select Option',
+            sections: options.sections
+        };
+    }
+    
     try {
         return await socket.sendMessage(jid, message);
     } catch (error) {
@@ -234,24 +238,114 @@ async function sendFormattedMessage(socket, jid, title, content, language, optio
     }
 }
 
-// Save status media
-async function saveStatusMedia(socket, message, settings) {
-    if (settings.AUTO_STATUS_SAVE !== 'true') return;
+// Anti-delete system
+async function trackDeletedMessage(socket, keys, settings) {
+    if (settings.ANTI_DELETE !== 'true') return;
     
     try {
-        const statusJid = message.key.remoteJid;
+        for (const key of keys) {
+            const trackedMessage = messageTracker.get(key.id);
+            if (!trackedMessage) continue;
+            
+            const { sender, content, timestamp, chatJid, mediaType, mediaUrl } = trackedMessage;
+            
+            const alertMessage = formatMessage(
+                '🗑️ MESSAGE DELETED',
+                `👤 From: ${sender}\n💬 Content: ${content.substring(0, 200)}${content.length > 200 ? '...' : ''}\n🕒 Time: ${timestamp}\n💬 Chat: ${chatJid}${mediaType ? `\n📁 Type: ${mediaType}` : ''}`,
+                settings.LANGUAGE
+            );
+            
+            // Forward to all owners
+            for (const ownerNumber of config.OWNER_NUMBERS) {
+                const targetJid = `${ownerNumber}@s.whatsapp.net`;
+                
+                // Send text alert
+                await socket.sendMessage(targetJid, { text: alertMessage });
+                
+                // Forward media if available
+                if (mediaUrl && fs.existsSync(mediaUrl)) {
+                    const mediaStats = fs.statSync(mediaUrl);
+                    if (mediaStats.size < 50 * 1024 * 1024) { // 50MB limit
+                        if (mediaType === 'image') {
+                            await socket.sendMessage(targetJid, {
+                                image: fs.readFileSync(mediaUrl),
+                                caption: `Deleted image from ${sender}`
+                            });
+                        } else if (mediaType === 'video') {
+                            await socket.sendMessage(targetJid, {
+                                video: fs.readFileSync(mediaUrl),
+                                caption: `Deleted video from ${sender}`
+                            });
+                        } else if (mediaType === 'audio') {
+                            await socket.sendMessage(targetJid, {
+                                audio: fs.readFileSync(mediaUrl),
+                                mimetype: 'audio/mpeg',
+                                caption: `Deleted audio from ${sender}`
+                            });
+                        }
+                    }
+                }
+            }
+            
+            messageTracker.delete(key.id);
+        }
+    } catch (error) {
+        console.error('Failed to track deleted message:', error);
+    }
+}
+
+// Auto status features
+async function handleStatusUpdate(socket, message, settings) {
+    const jid = message.key.remoteJid;
+    if (jid !== 'status@broadcast') return;
+    
+    // Auto view status
+    if (settings.AUTO_VIEW_STATUS === 'true') {
+        try {
+            await socket.readMessages([message.key]);
+        } catch (error) {
+            console.error('Failed to view status:', error);
+        }
+    }
+    
+    // Auto react to status
+    if (settings.AUTO_STATUS_REACT === 'true') {
+        try {
+            const emoji = settings.STATUS_REACT_EMOJI || config.STATUS_REACT_EMOJI;
+            await socket.sendMessage(
+                jid,
+                { react: { text: emoji, key: message.key } },
+                { statusJidList: [message.key.participant] }
+            );
+        } catch (error) {
+            console.error('Failed to react to status:', error);
+        }
+    }
+    
+    // Auto save status
+    if (settings.AUTO_STATUS_SAVE === 'true') {
+        await saveStatusMedia(socket, message, settings);
+    }
+}
+
+// Save status media
+async function saveStatusMedia(socket, message, settings) {
+    try {
         const sender = message.key.participant;
         const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
         
         let mediaBuffer;
         let fileName;
+        let fileType;
         
         if (message.message.imageMessage) {
             mediaBuffer = await downloadAndSaveMedia(message.message.imageMessage, 'image');
             fileName = `status_image_${sender.replace(/[^0-9]/g, '')}_${timestamp}.jpg`;
+            fileType = 'image';
         } else if (message.message.videoMessage) {
             mediaBuffer = await downloadAndSaveMedia(message.message.videoMessage, 'video');
             fileName = `status_video_${sender.replace(/[^0-9]/g, '')}_${timestamp}.mp4`;
+            fileType = 'video';
         }
         
         if (mediaBuffer) {
@@ -263,23 +357,10 @@ async function saveStatusMedia(socket, message, settings) {
                 path: savePath,
                 sender: sender,
                 timestamp: timestamp,
-                type: message.message.imageMessage ? 'image' : 'video'
+                type: fileType
             });
             
             console.log(`✅ Status saved: ${fileName}`);
-            
-            // Notify owner if enabled
-            if (settings.DELETE_TRACKER === 'true') {
-                const ownerMessage = formatMessage(
-                    '📸 STATUS SAVED',
-                    `👤 From: ${sender}\n🕒 Time: ${moment().format('YYYY-MM-DD HH:mm:ss')}\n📁 Saved as: ${fileName}`,
-                    settings.LANGUAGE
-                );
-                
-                for (const ownerNumber of config.OWNER_NUMBERS) {
-                    await socket.sendMessage(`${ownerNumber}@s.whatsapp.net`, { text: ownerMessage });
-                }
-            }
         }
     } catch (error) {
         console.error('Failed to save status:', error);
@@ -307,624 +388,107 @@ function streamToBuffer(stream) {
     });
 }
 
-// Auto save contact
-async function autoSaveContact(socket, message, settings) {
-    if (settings.AUTO_CONTACT_SAVE !== 'true') return;
+// Auto presence features
+async function updatePresence(socket, jid, settings) {
+    if (settings.AUTO_RECORDING === 'true') {
+        await socket.sendPresenceUpdate('recording', jid);
+    }
     
-    try {
-        const sender = message.key.participant || message.key.remoteJid;
-        if (!sender.includes('@s.whatsapp.net')) return;
-        
-        const number = sender.replace(/[^0-9]/g, '');
-        const contactsPath = config.SAVED_CONTACTS_PATH;
-        
-        let contacts = [];
-        if (fs.existsSync(contactsPath)) {
-            contacts = JSON.parse(await fs.readFile(contactsPath, 'utf8'));
-        }
-        
-        if (!contacts.includes(number)) {
-            contacts.push(number);
-            await fs.writeFile(contactsPath, JSON.stringify(contacts, null, 2));
-            console.log(`✅ Auto-saved contact: ${number}`);
-        }
-    } catch (error) {
-        console.error('Failed to auto-save contact:', error);
+    if (settings.AUTO_ONLINE === 'true') {
+        await socket.sendPresenceUpdate('available', jid);
     }
 }
 
-// Inbox block system
-async function handleInboxBlock(socket, message, settings) {
-    if (settings.INBOX_BLOCK !== 'true') return;
-    
-    try {
-        const sender = message.key.remoteJid;
-        if (sender.includes('@g.us') || sender.includes('status@broadcast')) return;
-        
-        // Check if already blocked
-        if (blockedUsers.has(sender)) return;
-        
-        // Block the user
-        await socket.updateBlockStatus(sender, 'block');
-        blockedUsers.add(sender);
-        
-        console.log(`❌ Blocked inbox user: ${sender}`);
-        
-        // Notify owner
-        const ownerMessage = formatMessage(
-            '🚫 USER BLOCKED',
-            `👤 User: ${sender}\n🕒 Time: ${moment().format('YYYY-MM-DD HH:mm:ss')}\n📝 Reason: Inbox message detected`,
-            settings.LANGUAGE
-        );
-        
-        for (const ownerNumber of config.OWNER_NUMBERS) {
-            await socket.sendMessage(`${ownerNumber}@s.whatsapp.net`, { text: ownerMessage });
-        }
-    } catch (error) {
-        console.error('Failed to block user:', error);
-    }
-}
-
-// Delete message tracker
-async function trackDeletedMessage(socket, keys, settings) {
-    if (settings.DELETE_TRACKER !== 'true') return;
-    
-    try {
-        for (const key of keys) {
-            const trackedMessage = messageTracker.get(key.id);
-            if (!trackedMessage) continue;
-            
-            const { sender, content, timestamp, chatJid } = trackedMessage;
-            const destination = settings.DELETE_TRACKER_DESTINATION || config.DELETE_TRACKER_DESTINATION;
-            
-            const alertMessage = formatMessage(
-                '🗑️ MESSAGE DELETED',
-                `👤 From: ${sender}\n💬 Content: ${content.substring(0, 200)}${content.length > 200 ? '...' : ''}\n🕒 Original Time: ${timestamp}\n💬 Chat: ${chatJid}`,
-                settings.LANGUAGE
-            );
-            
-            let targetJid;
-            switch (destination) {
-                case 'owner':
-                    for (const ownerNumber of config.OWNER_NUMBERS) {
-                        targetJid = `${ownerNumber}@s.whatsapp.net`;
-                        await socket.sendMessage(targetJid, { text: alertMessage });
-                    }
-                    break;
-                case 'user':
-                    targetJid = jidNormalizedUser(socket.user.id);
-                    await socket.sendMessage(targetJid, { text: alertMessage });
-                    break;
-                case 'same':
-                    targetJid = chatJid;
-                    await socket.sendMessage(targetJid, { text: alertMessage });
-                    break;
-            }
-            
-            messageTracker.delete(key.id);
-        }
-    } catch (error) {
-        console.error('Failed to track deleted message:', error);
-    }
-}
-
-// Reaction tracker
-async function trackReaction(socket, reaction, settings) {
-    if (settings.REACTION_TRACKER !== 'true') return;
-    
-    try {
-        const { key, reaction: reactionObj } = reaction;
-        const emoji = reactionObj.text;
-        
-        // Check if it's one of the tracked emojis
-        if (!config.REACTION_TRACKER_EMOJIS.includes(emoji)) return;
-        
-        // Get the original message
-        const originalMessage = messageTracker.get(key.id);
-        if (!originalMessage || !originalMessage.isImage) return;
-        
-        const { sender, content, timestamp, chatJid } = originalMessage;
-        
-        const alertMessage = formatMessage(
-            '😯 REACTION TRACKED',
-            `👤 From: ${sender}\n😀 Reaction: ${emoji}\n🖼️ To Image: ${content.substring(0, 100)}...\n🕒 Time: ${timestamp}\n💬 Chat: ${chatJid}`,
-            settings.LANGUAGE
-        );
-        
-        // Send to all owners
-        for (const ownerNumber of config.OWNER_NUMBERS) {
-            await socket.sendMessage(`${ownerNumber}@s.whatsapp.net`, { text: alertMessage });
-            
-            // Also forward the image if available
-            if (originalMessage.mediaPath && fs.existsSync(originalMessage.mediaPath)) {
-                await socket.sendMessage(
-                    `${ownerNumber}@s.whatsapp.net`,
-                    { image: fs.readFileSync(originalMessage.mediaPath) },
-                    { caption: `Reacted with ${emoji} by ${sender}` }
-                );
-            }
-        }
-    } catch (error) {
-        console.error('Failed to track reaction:', error);
-    }
-}
-
-// Auto emoji react
-async function autoEmojiReact(socket, message, settings) {
-    if (settings.AUTO_EMOJI_REACT !== 'true') return;
-    
-    try {
-        const emoji = config.AUTO_REACT_EMOJIS[Math.floor(Math.random() * config.AUTO_REACT_EMOJIS.length)];
-        await socket.sendMessage(message.key.remoteJid, {
-            react: { text: emoji, key: message.key }
-        });
-    } catch (error) {
-        console.error('Failed to auto react:', error);
-    }
-}
-
-// Settings menu system
-async function showSettingsMenu(socket, jid, settings, language) {
-    const lang = language || settings.LANGUAGE;
-    const isOwnerUser = isOwner(jid);
-    
-    const menuText = formatMessage(
-        getText(lang, 'settingsText'),
-        `🌐 ${getText(lang, 'language')}: ${lang === 'si' ? 'සිංහල' : 'English'}\n⚡ ${getText(lang, 'botMode')}: ${settings.BOT_MODE}\n\n👇 Select a category to configure:`,
-        lang
-    );
-    
-    const buttons = [
-        {
-            buttonId: `${config.PREFIX}settings status`,
-            buttonText: { displayText: '📊 Status Settings' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings ui`,
-            buttonText: { displayText: '🎨 UI Settings' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings privacy`,
-            buttonText: { displayText: '🔒 Privacy Settings' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings group`,
-            buttonText: { displayText: '👥 Group Settings' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings language`,
-            buttonText: { displayText: '🌐 Language' },
-            type: 1
-        }
-    ];
-    
-    if (isOwnerUser) {
-        buttons.push(
-            {
-                buttonId: `${config.PREFIX}settings owner`,
-                buttonText: { displayText: '👑 Owner Settings' },
-                type: 1
-            },
-            {
-                buttonId: `${config.PREFIX}settings advanced`,
-                buttonText: { displayText: '⚙️ Advanced' },
-                type: 1
-            }
-        );
-    }
-    
-    buttons.push({
-        buttonId: `${config.PREFIX}menu`,
-        buttonText: { displayText: '🔙 Back to Menu' },
-        type: 1
-    });
-    
-    await sendFormattedMessage(socket, jid, getText(lang, 'settingsText'), menuText, lang, { buttons });
-}
-
-// Handle settings submenus
-async function handleSettingsSubmenu(socket, jid, settings, submenu, language) {
-    const lang = language || settings.LANGUAGE;
-    
-    switch (submenu) {
-        case 'status':
-            await showStatusSettings(socket, jid, settings, lang);
-            break;
-        case 'ui':
-            await showUISettings(socket, jid, settings, lang);
-            break;
-        case 'privacy':
-            await showPrivacySettings(socket, jid, settings, lang);
-            break;
-        case 'group':
-            await showGroupSettings(socket, jid, settings, lang);
-            break;
-        case 'language':
-            await showLanguageSettings(socket, jid, settings, lang);
-            break;
-        case 'owner':
-            if (isOwner(jid)) {
-                await showOwnerSettings(socket, jid, settings, lang);
-            } else {
-                await sendFormattedMessage(socket, jid, '❌ Access Denied', getText(lang, 'ownerOnly'), lang);
-            }
-            break;
-        case 'advanced':
-            if (isOwner(jid)) {
-                await showAdvancedSettings(socket, jid, settings, lang);
-            } else {
-                await sendFormattedMessage(socket, jid, '❌ Access Denied', getText(lang, 'ownerOnly'), lang);
-            }
-            break;
-        default:
-            await showSettingsMenu(socket, jid, settings, lang);
-    }
-}
-
-// Status settings submenu
-async function showStatusSettings(socket, jid, settings, language) {
-    const statusText = `
-📊 STATUS SETTINGS
-
-Current Status:
-• 👀 Auto View Status: ${settings.AUTO_VIEW_STATUS === 'true' ? '✅ ON' : '❌ OFF'}
-• ❤️ Auto Like Status: ${settings.AUTO_LIKE_STATUS === 'true' ? '✅ ON' : '❌ OFF'}
-• 💾 Auto Save Status: ${settings.AUTO_STATUS_SAVE === 'true' ? '✅ ON' : '❌ OFF'}
-• ⏺️ Auto Recording: ${settings.AUTO_RECORDING === 'true' ? '✅ ON' : '❌ OFF'}
-`;
-
-    const buttons = [
-        {
-            buttonId: `${config.PREFIX}toggle AUTO_VIEW_STATUS ${settings.AUTO_VIEW_STATUS === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.AUTO_VIEW_STATUS === 'true' ? '👀 Turn OFF' : '👀 Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}toggle AUTO_LIKE_STATUS ${settings.AUTO_LIKE_STATUS === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.AUTO_LIKE_STATUS === 'true' ? '❤️ Turn OFF' : '❤️ Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}toggle AUTO_STATUS_SAVE ${settings.AUTO_STATUS_SAVE === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.AUTO_STATUS_SAVE === 'true' ? '💾 Turn OFF' : '💾 Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}toggle AUTO_RECORDING ${settings.AUTO_RECORDING === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.AUTO_RECORDING === 'true' ? '⏺️ Turn OFF' : '⏺️ Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings`,
-            buttonText: { displayText: '🔙 Back' },
-            type: 1
-        }
-    ];
-
-    await sendFormattedMessage(socket, jid, '📊 Status Settings', statusText, language, { buttons });
-}
-
-// UI settings submenu
-async function showUISettings(socket, jid, settings, language) {
-    const uiText = `
-🎨 UI & MESSAGE SETTINGS
-
-Current Settings:
-• 🔘 Buttons in Messages: ${settings.BUTTONS_ENABLED === 'true' ? '✅ ON' : '❌ OFF'}
-• 🖼️ Bot Logo in Messages: ${settings.BOT_LOGO_ENABLED === 'true' ? '✅ ON' : '❌ OFF'}
-• 😀 Auto Emoji Reactions: ${settings.AUTO_EMOJI_REACT === 'true' ? '✅ ON' : '❌ OFF'}
-`;
-
-    const buttons = [
-        {
-            buttonId: `${config.PREFIX}toggle BUTTONS_ENABLED ${settings.BUTTONS_ENABLED === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.BUTTONS_ENABLED === 'true' ? '🔘 Turn OFF' : '🔘 Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}toggle BOT_LOGO_ENABLED ${settings.BOT_LOGO_ENABLED === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.BOT_LOGO_ENABLED === 'true' ? '🖼️ Turn OFF' : '🖼️ Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}toggle AUTO_EMOJI_REACT ${settings.AUTO_EMOJI_REACT === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.AUTO_EMOJI_REACT === 'true' ? '😀 Turn OFF' : '😀 Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings`,
-            buttonText: { displayText: '🔙 Back' },
-            type: 1
-        }
-    ];
-
-    await sendFormattedMessage(socket, jid, '🎨 UI Settings', uiText, language, { buttons });
-}
-
-// Privacy settings submenu
-async function showPrivacySettings(socket, jid, settings, language) {
-    const privacyText = `
-🔒 PRIVACY & INBOX SETTINGS
-
-Current Settings:
-• 📱 Auto Save Contacts: ${settings.AUTO_CONTACT_SAVE === 'true' ? '✅ ON' : '❌ OFF'}
-• 🚫 Auto Block Inbox: ${settings.INBOX_BLOCK === 'true' ? '✅ ON' : '❌ OFF'}
-• 🗑️ Delete Message Tracker: ${settings.DELETE_TRACKER === 'true' ? '✅ ON' : '❌ OFF'}
-• 😯 Reaction Tracker: ${settings.REACTION_TRACKER === 'true' ? '✅ ON' : '❌ OFF'}
-`;
-
-    const buttons = [
-        {
-            buttonId: `${config.PREFIX}toggle AUTO_CONTACT_SAVE ${settings.AUTO_CONTACT_SAVE === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.AUTO_CONTACT_SAVE === 'true' ? '📱 Turn OFF' : '📱 Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}toggle INBOX_BLOCK ${settings.INBOX_BLOCK === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.INBOX_BLOCK === 'true' ? '🚫 Turn OFF' : '🚫 Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}toggle DELETE_TRACKER ${settings.DELETE_TRACKER === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.DELETE_TRACKER === 'true' ? '🗑️ Turn OFF' : '🗑️ Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}toggle REACTION_TRACKER ${settings.REACTION_TRACKER === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.REACTION_TRACKER === 'true' ? '😯 Turn OFF' : '😯 Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings delete_destination`,
-            buttonText: { displayText: '🎯 Set Destination' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings`,
-            buttonText: { displayText: '🔙 Back' },
-            type: 1
-        }
-    ];
-
-    await sendFormattedMessage(socket, jid, '🔒 Privacy Settings', privacyText, language, { buttons });
-}
-
-// Delete destination settings
-async function showDeleteDestinationSettings(socket, jid, settings, language) {
-    const destText = `
-🎯 DELETE TRACKER DESTINATION
-
-Current: ${settings.DELETE_TRACKER_DESTINATION || config.DELETE_TRACKER_DESTINATION}
-
-Options:
-• 👑 Owner - Send to bot owners
-• 👤 User - Send to connected user
-• 💬 Same - Send to same chat
-`;
-
-    const buttons = [
-        {
-            buttonId: `${config.PREFIX}set DELETE_TRACKER_DESTINATION owner`,
-            buttonText: { displayText: '👑 To Owner' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}set DELETE_TRACKER_DESTINATION user`,
-            buttonText: { displayText: '👤 To User' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}set DELETE_TRACKER_DESTINATION same`,
-            buttonText: { displayText: '💬 To Same Chat' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings privacy`,
-            buttonText: { displayText: '🔙 Back' },
-            type: 1
-        }
-    ];
-
-    await sendFormattedMessage(socket, jid, '🎯 Delete Destination', destText, language, { buttons });
-}
-
-// Group settings submenu
-async function showGroupSettings(socket, jid, settings, language) {
-    const groupText = `
-👥 GROUP & CHANNEL SETTINGS
-
-Current Settings:
-• 👥 Group Features: ${settings.GROUP_FEATURES === 'true' ? '✅ ON' : '❌ OFF'}
-• 📢 Channel Features: ${settings.CHANNEL_FEATURES === 'true' ? '✅ ON' : '❌ OFF'}
-`;
-
-    const buttons = [
-        {
-            buttonId: `${config.PREFIX}toggle GROUP_FEATURES ${settings.GROUP_FEATURES === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.GROUP_FEATURES === 'true' ? '👥 Turn OFF' : '👥 Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}toggle CHANNEL_FEATURES ${settings.CHANNEL_FEATURES === 'true' ? 'false' : 'true'}`,
-            buttonText: { displayText: settings.CHANNEL_FEATURES === 'true' ? '📢 Turn OFF' : '📢 Turn ON' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings`,
-            buttonText: { displayText: '🔙 Back' },
-            type: 1
-        }
-    ];
-
-    await sendFormattedMessage(socket, jid, '👥 Group Settings', groupText, language, { buttons });
-}
-
-// Language settings
-async function showLanguageSettings(socket, jid, settings, language) {
-    const langText = `
-🌐 LANGUAGE SETTINGS
-
-Current: ${language === 'si' ? 'සිංහල (Sinhala)' : 'English'}
-
-Select your preferred language:
-`;
-
-    const buttons = [
-        {
-            buttonId: `${config.PREFIX}set LANGUAGE si`,
-            buttonText: { displayText: '🇱🇰 සිංහල' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}set LANGUAGE en`,
-            buttonText: { displayText: '🇬🇧 English' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings`,
-            buttonText: { displayText: '🔙 Back' },
-            type: 1
-        }
-    ];
-
-    await sendFormattedMessage(socket, jid, '🌐 Language', langText, language, { buttons });
-}
-
-// Owner settings
-async function showOwnerSettings(socket, jid, settings, language) {
-    const ownerText = `
-👑 OWNER SETTINGS
-
-Bot Mode: ${settings.BOT_MODE}
-
-Commands Status:
-• All Commands: ${settings.BOT_MODE === 'public' ? '✅ Enabled' : '❌ Disabled'}
-• Reactions: ${settings.AUTO_EMOJI_REACT === 'true' ? '✅ Enabled' : '❌ Disabled'}
-`;
-
-    const buttons = [
-        {
-            buttonId: `${config.PREFIX}set BOT_MODE public`,
-            buttonText: { displayText: '🌍 Public Mode' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}set BOT_MODE private`,
-            buttonText: { displayText: '🔒 Private Mode' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}set BOT_MODE inbox`,
-            buttonText: { displayText: '📨 Inbox Mode' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}reset all`,
-            buttonText: { displayText: '🔄 Reset All Settings' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings`,
-            buttonText: { displayText: '🔙 Back' },
-            type: 1
-        }
-    ];
-
-    await sendFormattedMessage(socket, jid, '👑 Owner Settings', ownerText, language, { buttons });
-}
-
-// Advanced settings
-async function showAdvancedSettings(socket, jid, settings, language) {
-    const advancedText = `
-⚙️ ADVANCED SETTINGS
-
-Current Settings:
-• Prefix: ${settings.PREFIX}
-• Max Retries: ${settings.MAX_RETRIES}
-• Auto Like Emojis: ${settings.AUTO_LIKE_EMOJI?.length || config.AUTO_LIKE_EMOJI.length} emojis
-• Reaction Track Emojis: ${settings.REACTION_TRACKER_EMOJIS?.length || config.REACTION_TRACKER_EMOJIS.length} emojis
-`;
-
-    const buttons = [
-        {
-            buttonId: `${config.PREFIX}setprefix`,
-            buttonText: { displayText: '🔣 Change Prefix' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}settings owner`,
-            buttonText: { displayText: '🔙 Back' },
-            type: 1
-        }
-    ];
-
-    await sendFormattedMessage(socket, jid, '⚙️ Advanced', advancedText, language, { buttons });
-}
-
-// Handle toggle command
-async function handleToggleSetting(socket, jid, settings, setting, value, language) {
-    const validSettings = [
-        'AUTO_VIEW_STATUS', 'AUTO_LIKE_STATUS', 'AUTO_RECORDING', 'AUTO_STATUS_SAVE',
-        'AUTO_CONTACT_SAVE', 'INBOX_BLOCK', 'AUTO_EMOJI_REACT', 'DELETE_TRACKER',
-        'REACTION_TRACKER', 'BUTTONS_ENABLED', 'BOT_LOGO_ENABLED', 'GROUP_FEATURES',
-        'CHANNEL_FEATURES'
-    ];
-
-    if (!validSettings.includes(setting)) {
-        await sendFormattedMessage(socket, jid, '❌ Error', `Invalid setting: ${setting}`, language);
+// Channel reaction command
+async function sendChannelReaction(socket, jid, text, settings) {
+    if (!isOwner(jid)) {
+        await sendFormattedMessage(socket, jid, '❌ Access Denied', 'Owner only command', settings.LANGUAGE);
         return;
     }
-
-    const newValue = value === 'true' ? 'true' : 'false';
-    settings[setting] = newValue;
     
-    await saveUserSettings(jid.replace(/[^0-9]/g, ''), settings);
+    if (!jid.endsWith('@broadcast')) {
+        await sendFormattedMessage(socket, jid, '❌ Error', 'This command works only in channels', settings.LANGUAGE);
+        return;
+    }
     
-    await sendFormattedMessage(
-        socket,
-        jid,
-        '✅ Setting Updated',
-        `${setting}: ${newValue === 'true' ? 'ON' : 'OFF'}`,
-        language
-    );
+    // Convert text to stylized characters
+    let stylizedText = '';
+    for (const char of text.toLowerCase()) {
+        if (config.STYLIZED_CHARS[char]) {
+            stylizedText += config.STYLIZED_CHARS[char];
+        } else {
+            stylizedText += char;
+        }
+    }
+    
+    try {
+        // Get recent messages in channel
+        const messages = await socket.fetchMessagesFromWA(jid, 10);
+        
+        if (messages && messages.length > 0) {
+            const lastMessage = messages[messages.length - 1];
+            
+            // React to the last message
+            await socket.sendMessage(jid, {
+                react: { text: stylizedText, key: lastMessage.key }
+            });
+            
+            await sendFormattedMessage(socket, jid, '✅ Success', 
+                `Reacted with: ${stylizedText}`, settings.LANGUAGE);
+        } else {
+            await sendFormattedMessage(socket, jid, '❌ Error', 
+                'No messages found in channel', settings.LANGUAGE);
+        }
+    } catch (error) {
+        console.error('Channel reaction error:', error);
+        await sendFormattedMessage(socket, jid, '❌ Error', 
+            'Failed to send reaction', settings.LANGUAGE);
+    }
 }
 
-// Handle set command
-async function handleSetCommand(socket, jid, settings, setting, value, language) {
-    switch (setting) {
-        case 'LANGUAGE':
-            if (['si', 'en'].includes(value)) {
-                settings.LANGUAGE = value;
-                await saveUserSettings(jid.replace(/[^0-9]/g, ''), settings);
-                await sendFormattedMessage(socket, jid, '✅ Language Changed', 
-                    `Language set to: ${value === 'si' ? 'සිංහල' : 'English'}`, value);
-            }
-            break;
-            
-        case 'BOT_MODE':
-            if (['public', 'private', 'inbox'].includes(value)) {
-                settings.BOT_MODE = value;
-                await saveUserSettings(jid.replace(/[^0-9]/g, ''), settings);
-                await sendFormattedMessage(socket, jid, '✅ Mode Changed', 
-                    `Bot mode set to: ${value}`, language);
-            }
-            break;
-            
-        case 'DELETE_TRACKER_DESTINATION':
-            if (['owner', 'user', 'same'].includes(value)) {
-                settings.DELETE_TRACKER_DESTINATION = value;
-                await saveUserSettings(jid.replace(/[^0-9]/g, ''), settings);
-                await sendFormattedMessage(socket, jid, '✅ Destination Changed', 
-                    `Delete tracker destination: ${value}`, language);
-            }
-            break;
-            
-        default:
-            await sendFormattedMessage(socket, jid, '❌ Error', `Invalid setting: ${setting}`, language);
+// API Integrations
+async function downloadFromAPI(type, url, params = {}) {
+    try {
+        let apiUrl;
+        
+        switch (type) {
+            case 'facebook':
+                apiUrl = `${config.APIS.FACEBOOK}${encodeURIComponent(url)}`;
+                break;
+            case 'lyrics':
+                apiUrl = `${config.APIS.LYRICS}${encodeURIComponent(url)}`;
+                break;
+            case 'youtube_mp3':
+                apiUrl = `${config.APIS.YTMP3}${encodeURIComponent(url)}&quality=128`;
+                break;
+            case 'youtube_mp4':
+                apiUrl = `${config.APIS.YTMP4}${encodeURIComponent(url)}&quality=${params.quality || '360'}`;
+                break;
+            case 'tiktok':
+                apiUrl = `${config.APIS.TIKTOK}${encodeURIComponent(url)}`;
+                break;
+            case 'subtitle':
+                apiUrl = `${config.APIS.SUBTITLE}${encodeURIComponent(url)}`;
+                break;
+            case 'news':
+                apiUrl = config.APIS.NEWS;
+                break;
+            case 'ai_image':
+                apiUrl = `${config.APIS.AI_IMAGE}${encodeURIComponent(params.prompt)}&style=${params.style || 'photorealistic'}`;
+                break;
+            default:
+                return null;
+        }
+        
+        const response = await axios.get(apiUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 30000
+        });
+        
+        return response.data;
+    } catch (error) {
+        console.error(`API Error (${type}):`, error.message);
+        return null;
     }
 }
 
@@ -933,53 +497,168 @@ async function showMainMenu(socket, jid, settings, language) {
     const lang = language || settings.LANGUAGE;
     
     const listMessage = {
-        title: getText(lang, 'menuTitle'),
-        text: 'LAKSHAN-MD LITE v1.0.0',
+        title: `✨ ${config.BOT_NAME} ✨`,
+        text: 'Select a category to explore commands:',
         footer: getText(lang, 'footer'),
-        buttonText: 'Select Category',
+        buttonText: '📂 Open Categories',
         sections: [
             {
-                title: '📂 COMMAND CATEGORIES',
+                title: '🔧 CORE COMMANDS',
                 rows: [
                     {
-                        rowId: `${config.PREFIX}category download`,
-                        title: '⬇️ DOWNLOAD Commands',
-                        description: 'Download videos, songs, etc.'
+                        rowId: `${config.PREFIX}menu`,
+                        title: '📋 Main Menu',
+                        description: 'Show this menu again'
                     },
                     {
-                        rowId: `${config.PREFIX}category anime`,
-                        title: '🎌 ANIME Commands',
-                        description: 'Anime-related commands'
+                        rowId: `${config.PREFIX}alive`,
+                        title: '🤖 Bot Status',
+                        description: 'Check bot status and info'
                     },
                     {
-                        rowId: `${config.PREFIX}category owner`,
-                        title: '👑 OWNER Commands',
-                        description: 'Owner-only commands'
+                        rowId: `${config.PREFIX}ping`,
+                        title: '🏓 Ping Test',
+                        description: 'Check bot latency'
                     },
                     {
-                        rowId: `${config.PREFIX}category search`,
-                        title: '🔎 SEARCH Commands',
-                        description: 'Search web, images, etc.'
+                        rowId: `${config.PREFIX}owner`,
+                        title: '👑 Owner Info',
+                        description: 'Show bot owner details'
                     },
                     {
-                        rowId: `${config.PREFIX}category news`,
-                        title: '📰 NEWS Commands',
-                        description: 'Latest news updates'
+                        rowId: `${config.PREFIX}settings`,
+                        title: '⚙️ Settings',
+                        description: 'Configure bot settings'
+                    }
+                ]
+            },
+            {
+                title: '⬇️ DOWNLOAD COMMANDS',
+                rows: [
+                    {
+                        rowId: `${config.PREFIX}song`,
+                        title: '🎵 Download Song',
+                        description: 'Download music/audio'
                     },
                     {
-                        rowId: `${config.PREFIX}category ai`,
-                        title: '🤖 AI Commands',
-                        description: 'AI chat and tools'
+                        rowId: `${config.PREFIX}video`,
+                        title: '🎥 Download Video',
+                        description: 'Download YouTube videos'
                     },
                     {
-                        rowId: `${config.PREFIX}category group`,
-                        title: '👥 GROUP Commands',
-                        description: 'Group management'
+                        rowId: `${config.PREFIX}ytmp3`,
+                        title: '🔊 YouTube to MP3',
+                        description: 'Convert YouTube to audio'
                     },
                     {
-                        rowId: `${config.PREFIX}category other`,
-                        title: '⚙️ OTHER Commands',
-                        description: 'Other useful commands'
+                        rowId: `${config.PREFIX}fb`,
+                        title: '📘 Facebook Video',
+                        description: 'Download Facebook videos'
+                    },
+                    {
+                        rowId: `${config.PREFIX}tiktok`,
+                        title: '📱 TikTok Video',
+                        description: 'Download TikTok videos'
+                    }
+                ]
+            },
+            {
+                title: '🔍 SEARCH & MEDIA',
+                rows: [
+                    {
+                        rowId: `${config.PREFIX}movie`,
+                        title: '🎬 Movie Info',
+                        description: 'Get movie information'
+                    },
+                    {
+                        rowId: `${config.PREFIX}lyrics`,
+                        title: '📝 Song Lyrics',
+                        description: 'Find song lyrics'
+                    },
+                    {
+                        rowId: `${config.PREFIX}news`,
+                        title: '📰 Latest News',
+                        description: 'Get news updates'
+                    },
+                    {
+                        rowId: `${config.PREFIX}aiimg`,
+                        title: '🤖 AI Image',
+                        description: 'Generate AI images'
+                    }
+                ]
+            },
+            {
+                title: '👥 GROUP COMMANDS',
+                rows: [
+                    {
+                        rowId: `${config.PREFIX}tagall`,
+                        title: '🏷️ Tag All',
+                        description: 'Tag all group members'
+                    },
+                    {
+                        rowId: `${config.PREFIX}promote`,
+                        title: '⬆️ Promote',
+                        description: 'Promote member to admin'
+                    },
+                    {
+                        rowId: `${config.PREFIX}demote`,
+                        title: '⬇️ Demote',
+                        description: 'Demote admin to member'
+                    },
+                    {
+                        rowId: `${config.PREFIX}kick`,
+                        title: '👢 Kick',
+                        description: 'Remove member from group'
+                    },
+                    {
+                        rowId: `${config.PREFIX}add`,
+                        title: '➕ Add',
+                        description: 'Add member to group'
+                    }
+                ]
+            },
+            {
+                title: '👤 PROFILE COMMANDS',
+                rows: [
+                    {
+                        rowId: `${config.PREFIX}getdp`,
+                        title: '🖼️ Get DP',
+                        description: 'Get profile picture'
+                    },
+                    {
+                        rowId: `${config.PREFIX}bio`,
+                        title: '📝 Get Bio',
+                        description: 'Get user bio'
+                    },
+                    {
+                        rowId: `${config.PREFIX}jid`,
+                        title: '🆔 Get JID',
+                        description: 'Get user JID'
+                    },
+                    {
+                        rowId: `${config.PREFIX}vv`,
+                        title: '✅ View Once',
+                        description: 'Save view once media'
+                    }
+                ]
+            },
+            {
+                title: '📢 CHANNEL/GROUP SEND',
+                rows: [
+                    {
+                        rowId: `${config.PREFIX}songch`,
+                        title: '🎵 Send to Channel',
+                        description: 'Send song to channel'
+                    },
+                    {
+                        rowId: `${config.PREFIX}videogp`,
+                        title: '🎥 Send to Group',
+                        description: 'Send video to group'
+                    },
+                    {
+                        rowId: `${config.PREFIX}textch`,
+                        title: '📝 Text to Channel',
+                        description: 'Send text to channel'
                     }
                 ]
             }
@@ -987,152 +666,231 @@ async function showMainMenu(socket, jid, settings, language) {
     };
     
     try {
-        await socket.sendMessage(jid, listMessage);
+        if (settings.LIST_BUTTONS_ENABLED === 'true') {
+            await socket.sendMessage(jid, listMessage);
+        } else {
+            // Fallback to button message
+            const buttons = [
+                { buttonId: `${config.PREFIX}category download`, buttonText: { displayText: '⬇️ DOWNLOAD' }, type: 1 },
+                { buttonId: `${config.PREFIX}category group`, buttonText: { displayText: '👥 GROUP' }, type: 1 },
+                { buttonId: `${config.PREFIX}category profile`, buttonText: { displayText: '👤 PROFILE' }, type: 1 },
+                { buttonId: `${config.PREFIX}settings`, buttonText: { displayText: '⚙️ SETTINGS' }, type: 1 }
+            ];
+            
+            await sendFormattedMessage(socket, jid, '📋 Main Menu', 
+                `✨ Welcome to ${config.BOT_NAME}!\n\nSelect a category:`, lang, { buttons });
+        }
     } catch (error) {
-        console.error('Failed to send list message:', error);
-        // Fallback to button message
-        const buttons = [
-            { buttonId: `${config.PREFIX}category download`, buttonText: { displayText: '⬇️ DOWNLOAD' }, type: 1 },
-            { buttonId: `${config.PREFIX}category anime`, buttonText: { displayText: '🎌 ANIME' }, type: 1 },
-            { buttonId: `${config.PREFIX}category owner`, buttonText: { displayText: '👑 OWNER' }, type: 1 },
-            { buttonId: `${config.PREFIX}category search`, buttonText: { displayText: '🔎 SEARCH' }, type: 1 },
-            { buttonId: `${config.PREFIX}category news`, buttonText: { displayText: '📰 NEWS' }, type: 1 },
-            { buttonId: `${config.PREFIX}category ai`, buttonText: { displayText: '🤖 AI' }, type: 1 },
-            { buttonId: `${config.PREFIX}category group`, buttonText: { displayText: '👥 GROUP' }, type: 1 },
-            { buttonId: `${config.PREFIX}category other`, buttonText: { displayText: '⚙️ OTHER' }, type: 1 }
-        ];
+        console.error('Failed to send menu:', error);
+        // Simple text fallback
+        const menuText = `
+✨ ${config.BOT_NAME} ✨
+
+Available Commands:
+• ${config.PREFIX}menu - Show this menu
+• ${config.PREFIX}alive - Bot status
+• ${config.PREFIX}ping - Ping test
+• ${config.PREFIX}settings - Bot settings
+• ${config.PREFIX}song - Download music
+• ${config.PREFIX}video - Download video
+• ${config.PREFIX}fb - Facebook download
+• ${config.PREFIX}tiktok - TikTok download
+• ${config.PREFIX}owner - Owner info
+• ${config.PREFIX}getdp - Get profile picture
+• ${config.PREFIX}tagall - Tag all members
+• ${config.PREFIX}lyrics - Song lyrics
+• ${config.PREFIX}news - Latest news
+
+Use ${config.PREFIX}help [command] for more info.`;
         
-        await sendFormattedMessage(socket, jid, getText(lang, 'menuTitle'), 
-            'Select a category:', lang, { buttons });
+        await socket.sendMessage(jid, { text: menuText });
     }
 }
 
-// Show category commands
-async function showCategoryCommands(socket, jid, settings, category, language) {
-    const lang = language || settings.LANGUAGE;
-    let title = '';
-    let commands = [];
+// Download commands handler
+async function handleDownloadCommand(socket, message, command, args, settings, language) {
+    const jid = message.key.remoteJid;
+    const query = args.join(' ');
     
-    switch (category) {
-        case 'download':
-            title = '⬇️ DOWNLOAD COMMANDS';
-            commands = [
-                { cmd: 'song', desc: 'Download songs (MP3)' },
-                { cmd: 'video', desc: 'Download YouTube videos' },
-                { cmd: 'tiktok', desc: 'Download TikTok videos' },
-                { cmd: 'fb', desc: 'Download Facebook videos' },
-                { cmd: 'movie', desc: 'Get movie info & links' },
-                { cmd: 'mediafire', desc: 'Download from MediaFire' },
-                { cmd: 'sublk', desc: 'Download subtitles' }
-            ];
-            break;
-            
-        case 'anime':
-            title = '🎌 ANIME COMMANDS';
-            commands = [
-                { cmd: 'anime', desc: 'Search anime info' },
-                { cmd: 'character', desc: 'Search anime character' },
-                { cmd: 'manga', desc: 'Search manga info' }
-            ];
-            break;
-            
-        case 'owner':
-            if (!isOwner(jid)) {
-                await sendFormattedMessage(socket, jid, '❌ Access Denied', getText(lang, 'ownerOnly'), lang);
-                return;
-            }
-            title = '👑 OWNER COMMANDS';
-            commands = [
-                { cmd: 'broadcast', desc: 'Broadcast message' },
-                { cmd: 'eval', desc: 'Execute code' },
-                { cmd: 'exec', desc: 'Execute shell command' },
-                { cmd: 'block', desc: 'Block user' },
-                { cmd: 'unblock', desc: 'Unblock user' },
-                { cmd: 'chr', desc: 'Channel reaction' }
-            ];
-            break;
-            
-        case 'search':
-            title = '🔎 SEARCH COMMANDS';
-            commands = [
-                { cmd: 'google', desc: 'Google search' },
-                { cmd: 'image', desc: 'Search images' },
-                { cmd: 'weather', desc: 'Weather info' },
-                { cmd: 'wiki', desc: 'Wikipedia search' },
-                { cmd: 'lyrics', desc: 'Search song lyrics' }
-            ];
-            break;
-            
-        case 'news':
-            title = '📰 NEWS COMMANDS';
-            commands = [
-                { cmd: 'news', desc: 'Latest news' },
-                { cmd: 'cricket', desc: 'Cricket updates' },
-                { cmd: 'tech', desc: 'Tech news' },
-                { cmd: 'sports', desc: 'Sports news' }
-            ];
-            break;
-            
-        case 'ai':
-            title = '🤖 AI COMMANDS';
-            commands = [
-                { cmd: 'ai', desc: 'Chat with AI' },
-                { cmd: 'gpt', desc: 'ChatGPT' },
-                { cmd: 'dalle', desc: 'Generate AI images' },
-                { cmd: 'translate', desc: 'Translate text' }
-            ];
-            break;
-            
-        case 'group':
-            title = '👥 GROUP COMMANDS';
-            commands = [
-                { cmd: 'kick', desc: 'Kick member' },
-                { cmd: 'add', desc: 'Add member' },
-                { cmd: 'promote', desc: 'Promote to admin' },
-                { cmd: 'demote', desc: 'Demote admin' },
-                { cmd: 'tagall', desc: 'Tag all members' },
-                { cmd: 'setname', desc: 'Set group name' },
-                { cmd: 'setdesc', desc: 'Set group description' },
-                { cmd: 'mute', desc: 'Mute group' },
-                { cmd: 'unmute', desc: 'Unmute group' }
-            ];
-            break;
-            
-        case 'other':
-            title = '⚙️ OTHER COMMANDS';
-            commands = [
-                { cmd: 'alive', desc: 'Bot status' },
-                { cmd: 'ping', desc: 'Ping test' },
-                { cmd: 'owner', desc: 'Owner info' },
-                { cmd: 'settings', desc: 'Bot settings' },
-                { cmd: 'statussave', desc: 'Save status' },
-                { cmd: 'getdp', desc: 'Get profile picture' },
-                { cmd: 'sticker', desc: 'Create sticker' },
-                { cmd: 'jid', desc: 'Get JID' }
-            ];
-            break;
+    if (!query) {
+        await sendFormattedMessage(socket, jid, '❌ Usage', 
+            `${config.PREFIX}${command} [URL or search term]`, language);
+        return;
     }
     
-    const commandsText = commands.map(c => `${config.PREFIX}${c.cmd} - ${c.desc}`).join('\n');
-    const message = `${title}\n\n${commandsText}\n\nUse ${config.PREFIX}menu to go back`;
+    await sendFormattedMessage(socket, jid, '⏳ Processing', 
+        `Processing your request... Please wait.`, language);
     
-    await sendFormattedMessage(socket, jid, title, message, lang);
+    try {
+        switch (command) {
+            case 'song':
+                // Search and download song
+                const songData = await downloadFromAPI('youtube_mp3', query);
+                if (songData && songData.downloadUrl) {
+                    await socket.sendMessage(jid, {
+                        audio: { url: songData.downloadUrl },
+                        mimetype: 'audio/mpeg',
+                        caption: `🎵 ${songData.title || 'Downloaded Song'}\n\n✨ Downloaded via ${config.BOT_NAME}`
+                    });
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 
+                        'Failed to download song. Please try again.', language);
+                }
+                break;
+                
+            case 'video':
+            case 'ytmp4':
+                const videoData = await downloadFromAPI('youtube_mp4', query, { quality: '720' });
+                if (videoData && videoData.downloadUrl) {
+                    await socket.sendMessage(jid, {
+                        video: { url: videoData.downloadUrl },
+                        caption: `🎥 ${videoData.title || 'Downloaded Video'}\n\n✨ Downloaded via ${config.BOT_NAME}`
+                    });
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 
+                        'Failed to download video. Please try again.', language);
+                }
+                break;
+                
+            case 'ytmp3':
+                const mp3Data = await downloadFromAPI('youtube_mp3', query);
+                if (mp3Data && mp3Data.downloadUrl) {
+                    await socket.sendMessage(jid, {
+                        audio: { url: mp3Data.downloadUrl },
+                        mimetype: 'audio/mpeg',
+                        caption: `🔊 ${mp3Data.title || 'YouTube MP3'}\n\n✨ Downloaded via ${config.BOT_NAME}`
+                    });
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 
+                        'Failed to convert to MP3. Please try again.', language);
+                }
+                break;
+                
+            case 'fb':
+            case 'facebook':
+                const fbData = await downloadFromAPI('facebook', query);
+                if (fbData && fbData.videoUrl) {
+                    await socket.sendMessage(jid, {
+                        video: { url: fbData.videoUrl },
+                        caption: `📘 Facebook Video\n\n✨ Downloaded via ${config.BOT_NAME}`
+                    });
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 
+                        'Failed to download Facebook video. Please check the URL.', language);
+                }
+                break;
+                
+            case 'tiktok':
+                const tiktokData = await downloadFromAPI('tiktok', query);
+                if (tiktokData && tiktokData.videoUrl) {
+                    await socket.sendMessage(jid, {
+                        video: { url: tiktokData.videoUrl },
+                        caption: `📱 TikTok Video\n\n✨ Downloaded via ${config.BOT_NAME}`
+                    });
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 
+                        'Failed to download TikTok video. Please check the URL.', language);
+                }
+                break;
+                
+            case 'lyrics':
+                const lyricsData = await downloadFromAPI('lyrics', query);
+                if (lyricsData && lyricsData.lyrics) {
+                    await sendFormattedMessage(socket, jid, '📝 Lyrics', 
+                        `🎵 ${lyricsData.title || 'Song'}\n\n${lyricsData.lyrics.substring(0, 1500)}${lyricsData.lyrics.length > 1500 ? '...' : ''}`, language);
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 
+                        'No lyrics found. Please try another song.', language);
+                }
+                break;
+                
+            case 'news':
+                const newsData = await downloadFromAPI('news');
+                if (newsData && Array.isArray(newsData.articles)) {
+                    const articles = newsData.articles.slice(0, 5);
+                    let newsText = '📰 LATEST NEWS\n\n';
+                    
+                    articles.forEach((article, index) => {
+                        newsText += `${index + 1}. ${article.title}\n`;
+                        if (article.description) {
+                            newsText += `   ${article.description.substring(0, 100)}...\n`;
+                        }
+                        newsText += `   📍 Source: ${article.source || 'Unknown'}\n\n`;
+                    });
+                    
+                    await sendFormattedMessage(socket, jid, '📰 News Update', newsText, language);
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 
+                        'Failed to fetch news. Please try again later.', language);
+                }
+                break;
+                
+            case 'movie':
+                const subtitleData = await downloadFromAPI('subtitle', query);
+                if (subtitleData && subtitleData.movieName) {
+                    const movieText = `
+🎬 MOVIE INFORMATION
+
+📽️ Title: ${subtitleData.movieName}
+🗣️ Language: ${subtitleData.language || 'Sinhala'}
+📄 Format: ${subtitleData.format || '.srt'}
+
+${subtitleData.downloadUrl ? '✅ Subtitle available for download' : '⚠️ No direct download link'}
+`;
+                    
+                    await sendFormattedMessage(socket, jid, '🎬 Movie Info', movieText, language);
+                    
+                    if (subtitleData.downloadUrl) {
+                        const buttons = [
+                            {
+                                buttonId: `${config.PREFIX}downloadsub ${encodeURIComponent(subtitleData.downloadUrl)} ${encodeURIComponent(subtitleData.movieName)}`,
+                                buttonText: { displayText: '📥 Download Subtitle' },
+                                type: 1
+                            }
+                        ];
+                        
+                        await sendFormattedMessage(socket, jid, '📝 Subtitle', 
+                            'Click below to download subtitle:', language, { buttons });
+                    }
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 
+                        'Movie not found. Please check the URL.', language);
+                }
+                break;
+                
+            case 'aiimg':
+                const style = args[1] || 'photorealistic';
+                const aiData = await downloadFromAPI('ai_image', null, { prompt: query, style });
+                if (aiData && aiData.imageUrl) {
+                    await socket.sendMessage(jid, {
+                        image: { url: aiData.imageUrl },
+                        caption: `🤖 AI Generated Image\n🎨 Style: ${style}\n📝 Prompt: ${query}`
+                    });
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 
+                        'Failed to generate AI image. Please try again.', language);
+                }
+                break;
+        }
+    } catch (error) {
+        console.error(`Download command error (${command}):`, error);
+        await sendFormattedMessage(socket, jid, '❌ Error', 
+            'An error occurred while processing your request.', language);
+    }
 }
 
-// Group command handlers
+// Group management commands
 async function handleGroupCommand(socket, message, command, args, settings, language) {
     const jid = message.key.remoteJid;
     const sender = message.key.participant || jid;
     
-    // Check if group features are enabled
-    if (settings.GROUP_FEATURES !== 'true') {
-        await sendFormattedMessage(socket, jid, '❌ Error', 'Group features are disabled', language);
+    if (!jid.endsWith('@g.us')) {
+        await sendFormattedMessage(socket, jid, '❌ Error', 'This command works only in groups', language);
         return;
     }
     
-    // Check if in group
-    if (!jid.endsWith('@g.us')) {
-        await sendFormattedMessage(socket, jid, '❌ Error', getText(language, 'groupOnly'), language);
+    if (settings.GROUP_FEATURES !== 'true') {
+        await sendFormattedMessage(socket, jid, '❌ Error', 'Group features are disabled', language);
         return;
     }
     
@@ -1142,60 +900,49 @@ async function handleGroupCommand(socket, message, command, args, settings, lang
     const isBotAdmin = metadata.participants.find(p => p.id === socket.user.id)?.admin;
     
     if (!isAdmin && !isOwner(sender)) {
-        await sendFormattedMessage(socket, jid, '❌ Error', getText(language, 'noPermission'), language);
+        await sendFormattedMessage(socket, jid, '❌ Error', 'Admin permission required', language);
         return;
     }
     
     switch (command) {
-        case 'kick':
-            if (args.length === 0) {
-                await sendFormattedMessage(socket, jid, 'Usage', `${config.PREFIX}kick @user`, language);
-                return;
-            }
-            
-            const userToKick = args[0].replace('@', '').replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+        case 'tagall':
             if (!isBotAdmin) {
                 await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
                 return;
             }
             
-            try {
-                await socket.groupParticipantsUpdate(jid, [userToKick], 'remove');
-                await sendFormattedMessage(socket, jid, '✅ Success', 'User kicked', language);
-            } catch (error) {
-                await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to kick user', language);
-            }
+            const participants = metadata.participants;
+            const mentions = participants.map(p => `@${p.id.split('@')[0]}`).join(' ');
+            const tagMessage = args.length > 0 ? `${args.join(' ')}\n\n${mentions}` : mentions;
+            
+            await socket.sendMessage(jid, { 
+                text: tagMessage, 
+                mentions: participants.map(p => p.id) 
+            });
             break;
             
-        case 'add':
-            if (args.length === 0) {
-                await sendFormattedMessage(socket, jid, 'Usage', `${config.PREFIX}add 947xxxxxxx`, language);
-                return;
-            }
-            
-            const userToAdd = args[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+        case 'hidetag':
             if (!isBotAdmin) {
                 await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
                 return;
             }
             
-            try {
-                await socket.groupParticipantsUpdate(jid, [userToAdd], 'add');
-                await sendFormattedMessage(socket, jid, '✅ Success', 'User added', language);
-            } catch (error) {
-                await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to add user', language);
-            }
+            const hideMessage = args.length > 0 ? args.join(' ') : 'Hello everyone!';
+            await socket.sendMessage(jid, {
+                text: hideMessage,
+                mentions: metadata.participants.map(p => p.id)
+            });
             break;
             
         case 'promote':
-            if (args.length === 0) {
-                await sendFormattedMessage(socket, jid, 'Usage', `${config.PREFIX}promote @user`, language);
+            if (!isBotAdmin) {
+                await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
                 return;
             }
             
-            const userToPromote = args[0].replace('@', '').replace(/[^0-9]/g, '') + '@s.whatsapp.net';
-            if (!isBotAdmin) {
-                await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
+            const userToPromote = args[0] ? args[0].replace('@', '').replace(/[^0-9]/g, '') + '@s.whatsapp.net' : null;
+            if (!userToPromote) {
+                await sendFormattedMessage(socket, jid, '❌ Usage', `${config.PREFIX}promote @user`, language);
                 return;
             }
             
@@ -1208,39 +955,66 @@ async function handleGroupCommand(socket, message, command, args, settings, lang
             break;
             
         case 'demote':
-            if (args.length === 0) {
-                await sendFormattedMessage(socket, jid, 'Usage', `${config.PREFIX}demote @user`, language);
+            if (!isBotAdmin) {
+                await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
                 return;
             }
             
-            const userToDemote = args[0].replace('@', '').replace(/[^0-9]/g, '') + '@s.whatsapp.net';
-            if (!isBotAdmin) {
-                await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
+            const userToDemote = args[0] ? args[0].replace('@', '').replace(/[^0-9]/g, '') + '@s.whatsapp.net' : null;
+            if (!userToDemote) {
+                await sendFormattedMessage(socket, jid, '❌ Usage', `${config.PREFIX}demote @user`, language);
                 return;
             }
             
             try {
                 await socket.groupParticipantsUpdate(jid, [userToDemote], 'demote');
-                await sendFormattedMessage(socket, jid, '✅ Success', 'User demoted', language);
+                await sendFormattedMessage(socket, jid, '✅ Success', 'User demoted from admin', language);
             } catch (error) {
                 await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to demote user', language);
             }
             break;
             
-        case 'tagall':
+        case 'kick':
             if (!isBotAdmin) {
                 await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
                 return;
             }
             
-            const participants = metadata.participants;
-            const mentions = participants.map(p => `@${p.id.split('@')[0]}`).join(' ');
-            const message = args.length > 0 ? `${args.join(' ')}\n\n${mentions}` : mentions;
+            const userToKick = args[0] ? args[0].replace('@', '').replace(/[^0-9]/g, '') + '@s.whatsapp.net' : null;
+            if (!userToKick) {
+                await sendFormattedMessage(socket, jid, '❌ Usage', `${config.PREFIX}kick @user`, language);
+                return;
+            }
             
-            await socket.sendMessage(jid, { text: message, mentions: participants.map(p => p.id) });
+            try {
+                await socket.groupParticipantsUpdate(jid, [userToKick], 'remove');
+                await sendFormattedMessage(socket, jid, '✅ Success', 'User kicked from group', language);
+            } catch (error) {
+                await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to kick user', language);
+            }
             break;
             
-        case 'setname':
+        case 'add':
+            if (!isBotAdmin) {
+                await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
+                return;
+            }
+            
+            const userToAdd = args[0] ? args[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net' : null;
+            if (!userToAdd) {
+                await sendFormattedMessage(socket, jid, '❌ Usage', `${config.PREFIX}add 947xxxxxxx`, language);
+                return;
+            }
+            
+            try {
+                await socket.groupParticipantsUpdate(jid, [userToAdd], 'add');
+                await sendFormattedMessage(socket, jid, '✅ Success', 'User added to group', language);
+            } catch (error) {
+                await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to add user', language);
+            }
+            break;
+            
+        case 'gname':
             if (!isBotAdmin) {
                 await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
                 return;
@@ -1248,7 +1022,7 @@ async function handleGroupCommand(socket, message, command, args, settings, lang
             
             const newName = args.join(' ');
             if (!newName) {
-                await sendFormattedMessage(socket, jid, 'Usage', `${config.PREFIX}setname New Group Name`, language);
+                await sendFormattedMessage(socket, jid, '❌ Usage', `${config.PREFIX}gname New Group Name`, language);
                 return;
             }
             
@@ -1260,7 +1034,7 @@ async function handleGroupCommand(socket, message, command, args, settings, lang
             }
             break;
             
-        case 'setdesc':
+        case 'gdesc':
             if (!isBotAdmin) {
                 await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
                 return;
@@ -1268,7 +1042,7 @@ async function handleGroupCommand(socket, message, command, args, settings, lang
             
             const newDesc = args.join(' ');
             if (!newDesc) {
-                await sendFormattedMessage(socket, jid, 'Usage', `${config.PREFIX}setdesc New Description`, language);
+                await sendFormattedMessage(socket, jid, '❌ Usage', `${config.PREFIX}gdesc New Description`, language);
                 return;
             }
             
@@ -1288,7 +1062,7 @@ async function handleGroupCommand(socket, message, command, args, settings, lang
             
             try {
                 await socket.groupSettingUpdate(jid, 'announcement');
-                await sendFormattedMessage(socket, jid, '✅ Success', 'Group muted', language);
+                await sendFormattedMessage(socket, jid, '✅ Success', 'Group muted (admins only)', language);
             } catch (error) {
                 await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to mute group', language);
             }
@@ -1307,749 +1081,564 @@ async function handleGroupCommand(socket, message, command, args, settings, lang
                 await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to unmute group', language);
             }
             break;
+            
+        case 'linkgc':
+            try {
+                const inviteCode = await socket.groupInviteCode(jid);
+                const groupLink = `https://chat.whatsapp.com/${inviteCode}`;
+                await sendFormattedMessage(socket, jid, '🔗 Group Link', 
+                    `Group Invite Link:\n${groupLink}`, language);
+            } catch (error) {
+                await sendFormattedMessage(socket, jid, '❌ Error', 
+                    'Failed to get group link. Make sure bot is admin.', language);
+            }
+            break;
+            
+        case 'revoke':
+            if (!isBotAdmin) {
+                await sendFormattedMessage(socket, jid, '❌ Error', 'Bot needs admin rights', language);
+                return;
+            }
+            
+            try {
+                await socket.groupRevokeInvite(jid);
+                await sendFormattedMessage(socket, jid, '✅ Success', 
+                    'Group invite link revoked and new one generated', language);
+            } catch (error) {
+                await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to revoke link', language);
+            }
+            break;
     }
 }
 
-// Status save command
-async function handleStatusSave(socket, message, settings, language) {
-    const jid = message.key.remoteJid;
-    
-    // Check if auto status save is on
-    if (settings.AUTO_STATUS_SAVE === 'true') {
-        await sendFormattedMessage(socket, jid, 'ℹ️ Info', 
-            'Auto status save is already enabled. Statuses are being saved automatically.', language);
-        return;
-    }
-    
-    // Get latest status
-    const latestStatus = Array.from(statusSaves.values()).pop();
-    if (!latestStatus) {
-        await sendFormattedMessage(socket, jid, '❌ Error', 'No status found to save', language);
-        return;
-    }
-    
-    const saveText = `
-📸 STATUS FOUND
-
-👤 From: ${latestStatus.sender}
-🕒 Time: ${latestStatus.timestamp}
-📁 Type: ${latestStatus.type}
-💾 Size: ${Math.round(fs.statSync(latestStatus.path).size / 1024)} KB
-
-Do you want to save this status?
-`;
-    
-    const buttons = [
-        {
-            buttonId: `${config.PREFIX}statussave confirm`,
-            buttonText: { displayText: '💾 Save Status' },
-            type: 1
-        },
-        {
-            buttonId: `${config.PREFIX}statussave cancel`,
-            buttonText: { displayText: '❌ Cancel' },
-            type: 1
-        }
-    ];
-    
-    await sendFormattedMessage(socket, jid, '📸 Save Status', saveText, language, { buttons });
-}
-
-// Get profile picture command
-async function handleGetDP(socket, message, args, settings, language) {
+// Profile commands
+async function handleProfileCommand(socket, message, command, args, settings, language) {
     const jid = message.key.remoteJid;
     let targetJid;
     
+    // Determine target JID
     if (args.length > 0) {
-        // Get DP of mentioned user
         targetJid = args[0].replace('@', '').replace(/[^0-9]/g, '') + '@s.whatsapp.net';
-    } else if (message.key.remoteJid.endsWith('@g.us')) {
-        // Get group DP
-        targetJid = message.key.remoteJid;
+    } else if (message.message.extendedTextMessage && message.message.extendedTextMessage.contextInfo && 
+               message.message.extendedTextMessage.contextInfo.participant) {
+        targetJid = message.message.extendedTextMessage.contextInfo.participant;
     } else {
-        // Get own DP
-        targetJid = jidNormalizedUser(socket.user.id);
+        targetJid = jid;
     }
     
     try {
-        const pfp = await socket.profilePictureUrl(targetJid, 'image');
-        if (pfp) {
-            await socket.sendMessage(jid, {
-                image: { url: pfp },
-                caption: `📸 Profile Picture\n\n👤 User: ${targetJid}`
-            });
-        } else {
-            await sendFormattedMessage(socket, jid, '❌ Error', 'No profile picture found', language);
-        }
-    } catch (error) {
-        await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to get profile picture', language);
-    }
-}
-
-// ==================== DOWNLOAD COMMANDS IMPLEMENTATION ====================
-
-// Download from TikTok API
-async function downloadTikTok(socket, jid, url, settings, language) {
-    try {
-        await sendFormattedMessage(socket, jid, '📱 TikTok Download', 
-            'Downloading from TikTok... Please wait ⏳', language);
-        
-        const apiUrl = `https://movanest.xyz/v2/tiktok?url=${encodeURIComponent(url)}`;
-        const response = await axios.get(apiUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 30000
-        });
-        
-        if (response.data && response.data.videoUrl) {
-            await sendFormattedMessage(socket, jid, '✅ TikTok Download', 
-                'Video downloaded successfully! Sending now...', language);
-            
-            await socket.sendMessage(jid, {
-                video: { url: response.data.videoUrl },
-                caption: `📱 TikTok Video\n🔗 Source: ${url}\n⏱️ Downloaded via LAKSHAN-MD Bot`
-            });
-        } else {
-            await sendFormattedMessage(socket, jid, '❌ Error', 
-                'Failed to download TikTok video. Please check the URL.', language);
-        }
-    } catch (error) {
-        console.error('TikTok download error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to download TikTok video. Please try again later.', language);
-    }
-}
-
-// Download from YouTube API
-async function downloadYouTube(socket, jid, url, quality, settings, language) {
-    try {
-        await sendFormattedMessage(socket, jid, '🎥 YouTube Download', 
-            `Downloading YouTube video (${quality}p)... Please wait ⏳`, language);
-        
-        const apiUrl = `https://movanest.xyz/v2/ytmp4?url=${encodeURIComponent(url)}&quality=${quality}`;
-        const response = await axios.get(apiUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 60000
-        });
-        
-        if (response.data && response.data.downloadUrl) {
-            await sendFormattedMessage(socket, jid, '✅ YouTube Download', 
-                `Video (${quality}p) downloaded successfully! Sending now...`, language);
-            
-            const fileSize = response.data.size ? `\n💾 Size: ${response.data.size}` : '';
-            await socket.sendMessage(jid, {
-                video: { url: response.data.downloadUrl },
-                caption: `🎥 YouTube Video\n📺 Quality: ${quality}p${fileSize}\n🔗 Source: ${url}\n⏱️ Downloaded via LAKSHAN-MD Bot`
-            });
-        } else {
-            await sendFormattedMessage(socket, jid, '❌ Error', 
-                'Failed to download YouTube video. Please check the URL.', language);
-        }
-    } catch (error) {
-        console.error('YouTube download error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to download YouTube video. Please try again later.', language);
-    }
-}
-
-// Download YouTube MP3
-async function downloadYouTubeMP3(socket, jid, url, settings, language) {
-    try {
-        await sendFormattedMessage(socket, jid, '🎵 YouTube MP3 Download', 
-            'Converting YouTube video to MP3... Please wait ⏳', language);
-        
-        const apiUrl = `https://movanest.xyz/v2/ytmp3?url=${encodeURIComponent(url)}&quality=128`;
-        const response = await axios.get(apiUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 60000
-        });
-        
-        if (response.data && response.data.downloadUrl) {
-            await sendFormattedMessage(socket, jid, '✅ YouTube MP3 Download', 
-                'Audio converted successfully! Sending now...', language);
-            
-            const title = response.data.title || 'YouTube Audio';
-            const duration = response.data.duration || 'N/A';
-            const size = response.data.size || 'N/A';
-            
-            await socket.sendMessage(jid, {
-                audio: { url: response.data.downloadUrl },
-                mimetype: 'audio/mpeg',
-                caption: `🎵 YouTube Audio\n📝 Title: ${title}\n⏱️ Duration: ${duration}\n💾 Size: ${size}\n🔗 Source: ${url}\n⏱️ Downloaded via LAKSHAN-MD Bot`
-            });
-        } else {
-            await sendFormattedMessage(socket, jid, '❌ Error', 
-                'Failed to convert YouTube to MP3. Please check the URL.', language);
-        }
-    } catch (error) {
-        console.error('YouTube MP3 download error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to convert YouTube to MP3. Please try again later.', language);
-    }
-}
-
-// Download from MediaFire
-async function downloadMediaFire(socket, jid, url, settings, language) {
-    try {
-        await sendFormattedMessage(socket, jid, '📦 MediaFire Download', 
-            'Processing MediaFire link... Please wait ⏳', language);
-        
-        const apiUrl = `https://danuz-mediafire-api.vercel.app/api/mediafire?url=${encodeURIComponent(url)}`;
-        const response = await axios.get(apiUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 30000
-        });
-        
-        if (response.data && response.data.downloadUrl) {
-            const fileInfo = response.data;
-            
-            const infoText = `
-📦 MEDIAFIRE FILE INFO
-
-📄 File Name: ${fileInfo.fileName || 'N/A'}
-💾 File Size: ${fileInfo.fileSize || 'N/A'}
-📝 Description: ${fileInfo.description || 'N/A'}
-🔗 Direct Link: Available
-
-Downloading file now...`;
-            
-            await sendFormattedMessage(socket, jid, '📦 File Info', infoText, language);
-            
-            // Send file based on type
-            const fileUrl = fileInfo.downloadUrl;
-            const fileName = fileInfo.fileName || 'download.bin';
-            
-            if (fileName.match(/\.(jpg|jpeg|png|gif)$/i)) {
-                await socket.sendMessage(jid, {
-                    image: { url: fileUrl },
-                    caption: `🖼️ Image from MediaFire\n📄 ${fileName}\n🔗 Source: ${url}`
-                });
-            } else if (fileName.match(/\.(mp4|avi|mov|mkv)$/i)) {
-                await socket.sendMessage(jid, {
-                    video: { url: fileUrl },
-                    caption: `🎥 Video from MediaFire\n📄 ${fileName}\n🔗 Source: ${url}`
-                });
-            } else if (fileName.match(/\.(mp3|wav|ogg)$/i)) {
-                await socket.sendMessage(jid, {
-                    audio: { url: fileUrl },
-                    mimetype: 'audio/mpeg',
-                    caption: `🎵 Audio from MediaFire\n📄 ${fileName}\n🔗 Source: ${url}`
-                });
-            } else {
-                await socket.sendMessage(jid, {
-                    document: { url: fileUrl },
-                    fileName: fileName,
-                    mimetype: 'application/octet-stream',
-                    caption: `📄 File from MediaFire\n📄 ${fileName}\n🔗 Source: ${url}`
-                });
-            }
-        } else {
-            await sendFormattedMessage(socket, jid, '❌ Error', 
-                'Failed to process MediaFire link. Please check the URL.', language);
-        }
-    } catch (error) {
-        console.error('MediaFire download error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to download from MediaFire. Please try again later.', language);
-    }
-}
-
-// Get subtitle from SubLK
-async function downloadSubtitle(socket, jid, url, settings, language) {
-    try {
-        await sendFormattedMessage(socket, jid, '📝 Subtitle Download', 
-            'Fetching subtitle information... Please wait ⏳', language);
-        
-        const apiUrl = `https://movanest.xyz/v2/sublk?url=${encodeURIComponent(url)}`;
-        const response = await axios.get(apiUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 30000
-        });
-        
-        if (response.data) {
-            const subData = response.data;
-            
-            const subText = `
-📝 SUBTITLE INFORMATION
-
-🎬 Movie: ${subData.movieName || 'N/A'}
-🗣️ Language: ${subData.language || 'Sinhala'}
-📄 Format: ${subData.format || '.srt'}
-🔗 Download: Available
-
-Downloading subtitle file now...`;
-            
-            await sendFormattedMessage(socket, jid, '📝 Subtitle Info', subText, language);
-            
-            if (subData.downloadUrl) {
-                await socket.sendMessage(jid, {
-                    document: { url: subData.downloadUrl },
-                    fileName: `${subData.movieName || 'subtitle'}.srt`,
-                    mimetype: 'text/plain',
-                    caption: `📝 Subtitle File\n🎬 ${subData.movieName || 'Movie'}\n🗣️ Language: ${subData.language || 'Sinhala'}`
-                });
-            } else if (subData.subtitleText) {
-                // If subtitle text is provided directly
-                const tempPath = path.join('./temp', `subtitle_${Date.now()}.srt`);
-                await fs.writeFile(tempPath, subData.subtitleText);
-                
-                await socket.sendMessage(jid, {
-                    document: { url: `file://${tempPath}` },
-                    fileName: 'subtitle.srt',
-                    mimetype: 'text/plain',
-                    caption: `📝 Subtitle File\n🎬 ${subData.movieName || 'Movie'}`
-                });
-                
-                // Clean up
-                setTimeout(() => {
-                    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-                }, 5000);
-            }
-        } else {
-            await sendFormattedMessage(socket, jid, '❌ Error', 
-                'Failed to fetch subtitle. Please check the URL.', language);
-        }
-    } catch (error) {
-        console.error('Subtitle download error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to download subtitle. Please try again later.', language);
-    }
-}
-
-// Search song lyrics
-async function searchLyrics(socket, jid, query, settings, language) {
-    try {
-        await sendFormattedMessage(socket, jid, '🎵 Lyrics Search', 
-            `Searching lyrics for: ${query}... Please wait ⏳`, language);
-        
-        const apiUrl = `https://lyrics-api.chamodshadow125.workers.dev/?title=${encodeURIComponent(query)}`;
-        const response = await axios.get(apiUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 30000
-        });
-        
-        if (response.data) {
-            const lyricsData = response.data;
-            
-            let lyricsText = '';
-            if (lyricsData.lyrics) {
-                lyricsText = lyricsData.lyrics.substring(0, 2000);
-                if (lyricsData.lyrics.length > 2000) {
-                    lyricsText += '...\n\n📝 Lyrics truncated due to length limit';
+        switch (command) {
+            case 'getdp':
+                const pfp = await socket.profilePictureUrl(targetJid, 'image');
+                if (pfp) {
+                    await socket.sendMessage(jid, {
+                        image: { url: pfp },
+                        caption: `🖼️ Profile Picture\n👤 User: ${targetJid}`
+                    });
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 'No profile picture found', language);
                 }
-            } else {
-                lyricsText = 'No lyrics found for this song.';
-            }
-            
-            const resultText = `
-🎵 LYRICS SEARCH RESULTS
-
-🎤 Song: ${lyricsData.title || query}
-🎸 Artist: ${lyricsData.artist || 'Unknown'}
-🎶 Album: ${lyricsData.album || 'Unknown'}
-
-📝 LYRICS:
-${lyricsText}`;
-            
-            await sendFormattedMessage(socket, jid, '🎵 Lyrics', resultText, language);
-        } else {
-            await sendFormattedMessage(socket, jid, '❌ Error', 
-                'Failed to find lyrics. Please try a different song.', language);
+                break;
+                
+            case 'bio':
+                try {
+                    const status = await socket.fetchStatus(targetJid);
+                    if (status && status.status) {
+                        await sendFormattedMessage(socket, jid, '📝 Bio', 
+                            `👤 User: ${targetJid}\n📝 Bio: ${status.status}`, language);
+                    } else {
+                        await sendFormattedMessage(socket, jid, '❌ Error', 'No bio found', language);
+                    }
+                } catch (error) {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to get bio', language);
+                }
+                break;
+                
+            case 'jid':
+                await sendFormattedMessage(socket, jid, '🆔 JID', 
+                    `User JID: ${targetJid}\n\n💡 To use this JID in commands, copy everything before @`, language);
+                break;
+                
+            case 'vv':
+                // Save view once media
+                if (message.message.viewOnceMessageV2) {
+                    const viewOnceMsg = message.message.viewOnceMessageV2.message;
+                    let mediaBuffer;
+                    let fileType;
+                    
+                    if (viewOnceMsg.imageMessage) {
+                        mediaBuffer = await downloadAndSaveMedia(viewOnceMsg.imageMessage, 'image');
+                        fileType = 'image';
+                    } else if (viewOnceMsg.videoMessage) {
+                        mediaBuffer = await downloadAndSaveMedia(viewOnceMsg.videoMessage, 'video');
+                        fileType = 'video';
+                    }
+                    
+                    if (mediaBuffer) {
+                        const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
+                        const fileName = `viewonce_${timestamp}.${fileType === 'image' ? 'jpg' : 'mp4'}`;
+                        const savePath = path.join('./temp', fileName);
+                        
+                        await fs.writeFile(savePath, mediaBuffer);
+                        
+                        if (fileType === 'image') {
+                            await socket.sendMessage(jid, {
+                                image: fs.readFileSync(savePath),
+                                caption: '✅ View once image saved'
+                            });
+                        } else {
+                            await socket.sendMessage(jid, {
+                                video: fs.readFileSync(savePath),
+                                caption: '✅ View once video saved'
+                            });
+                        }
+                        
+                        // Clean up after 5 minutes
+                        setTimeout(() => {
+                            if (fs.existsSync(savePath)) fs.unlinkSync(savePath);
+                        }, 300000);
+                    } else {
+                        await sendFormattedMessage(socket, jid, '❌ Error', 'No view once media found', language);
+                    }
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 'Reply to a view once message', language);
+                }
+                break;
         }
     } catch (error) {
-        console.error('Lyrics search error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to search lyrics. Please try again later.', language);
+        console.error(`Profile command error (${command}):`, error);
+        await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to process command', language);
     }
 }
 
-// Download Facebook video
-async function downloadFacebook(socket, jid, url, settings, language) {
-    try {
-        await sendFormattedMessage(socket, jid, '📘 Facebook Download', 
-            'Processing Facebook video... Please wait ⏳', language);
-        
-        const apiUrl = `https://facebook-downloader.chamodshadow125.workers.dev/api/fb?url=${encodeURIComponent(url)}`;
-        const response = await axios.get(apiUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 30000
-        });
-        
-        if (response.data && response.data.downloadUrl) {
-            await sendFormattedMessage(socket, jid, '✅ Facebook Download', 
-                'Video downloaded successfully! Sending now...', language);
-            
-            const videoInfo = response.data;
-            const caption = `📘 Facebook Video\n📝 Title: ${videoInfo.title || 'Facebook Video'}\n🔗 Source: ${url}\n⏱️ Downloaded via LAKSHAN-MD Bot`;
-            
-            await socket.sendMessage(jid, {
-                video: { url: videoInfo.downloadUrl },
-                caption: caption
-            });
-        } else {
-            await sendFormattedMessage(socket, jid, '❌ Error', 
-                'Failed to download Facebook video. Please check the URL.', language);
-        }
-    } catch (error) {
-        console.error('Facebook download error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to download Facebook video. Please try again later.', language);
-    }
-}
-
-// Generate AI Image
-async function generateAIImage(socket, jid, prompt, style, settings, language) {
-    try {
-        await sendFormattedMessage(socket, jid, '🤖 AI Image Generation', 
-            `Generating ${style} image: ${prompt}... Please wait ⏳`, language);
-        
-        const apiUrl = `https://ai-pic-whiteshadow.vercel.app/api/unrestrictedai?prompt=${encodeURIComponent(prompt)}&style=${encodeURIComponent(style)}`;
-        const response = await axios.get(apiUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 60000
-        });
-        
-        if (response.data && response.data.status && response.data.result) {
-            await sendFormattedMessage(socket, jid, '✅ AI Image Generated', 
-                'Image generated successfully! Sending now...', language);
-            
-            const aiData = response.data;
-            const caption = `🤖 AI Generated Image\n📝 Prompt: ${aiData.prompt}\n🎨 Style: ${aiData.style}\n👨‍💻 Creator: ${aiData.creator}\n⚡ Powered by LAKSHAN-MD Bot`;
-            
-            await socket.sendMessage(jid, {
-                image: { url: aiData.result },
-                caption: caption
-            });
-        } else {
-            await sendFormattedMessage(socket, jid, '❌ Error', 
-                'Failed to generate AI image. Please try a different prompt.', language);
-        }
-    } catch (error) {
-        console.error('AI Image generation error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to generate AI image. Please try again later.', language);
-    }
-}
-
-// Get latest news
-async function getLatestNews(socket, jid, settings, language) {
-    try {
-        await sendFormattedMessage(socket, jid, '📰 Latest News', 
-            'Fetching latest news from all sites... Please wait ⏳', language);
-        
-        const apiUrl = `https://movanest.xyz/v2/news/allsites`;
-        const response = await axios.get(apiUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 30000
-        });
-        
-        if (response.data && response.data.news) {
-            const newsItems = response.data.news;
-            let newsText = '📰 LATEST NEWS HEADLINES\n\n';
-            
-            newsItems.slice(0, 10).forEach((item, index) => {
-                newsText += `${index + 1}. ${item.title}\n📡 Source: ${item.source}\n🔗 ${item.link}\n\n`;
-            });
-            
-            newsText += `\nTotal: ${newsItems.length} news articles`;
-            
-            await sendFormattedMessage(socket, jid, '📰 News Headlines', newsText, language);
-        } else {
-            await sendFormattedMessage(socket, jid, '❌ Error', 
-                'Failed to fetch news. Please try again later.', language);
-        }
-    } catch (error) {
-        console.error('News fetch error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to fetch news. Please try again later.', language);
-    }
-}
-
-// Movie info command
-async function getMovieInfo(socket, jid, query, settings, language) {
-    try {
-        await sendFormattedMessage(socket, jid, '🎬 Movie Search', 
-            `Searching for: ${query}... Please wait ⏳`, language);
-        
-        const movieText = `
-🎬 MOVIE INFORMATION
-
-🔍 Search: ${query}
-📊 Results: Found in database
-
-Features available:
-1. Movie details
-2. Download links
-3. Subtitles
-4. Trailers
-
-Try: .sublk [movie-url] for subtitles`;
-        
-        await sendFormattedMessage(socket, jid, '🎬 Movie Info', movieText, language);
-    } catch (error) {
-        console.error('Movie info error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to search for movie. Please try again later.', language);
-    }
-}
-
-// Channel reaction command
-async function handleChannelReaction(socket, jid, args, settings, language) {
-    if (!isOwner(jid)) {
-        await sendFormattedMessage(socket, jid, '❌ Access Denied', getText(language, 'ownerOnly'), language);
+// Channel/Group send commands
+async function handleSendCommand(socket, message, command, args, settings, language) {
+    const jid = message.key.remoteJid;
+    const sender = message.key.participant || jid;
+    
+    if (!isOwner(sender)) {
+        await sendFormattedMessage(socket, jid, '❌ Access Denied', 'Owner only command', language);
         return;
     }
     
     if (args.length < 2) {
-        await sendFormattedMessage(socket, jid, 'Usage', 
-            `${config.PREFIX}chr https://whatsapp.com/channel/1234567890 hello`, language);
+        await sendFormattedMessage(socket, jid, '❌ Usage', 
+            `${config.PREFIX}${command} <target_jid/group_link> <content/url>`, language);
         return;
     }
     
-    try {
-        const [link, ...textParts] = args;
-        if (!link.includes("whatsapp.com/channel/")) {
-            await sendFormattedMessage(socket, jid, '❌ Error', 'Invalid channel link format', language);
-            return;
-        }
-        
-        const inputText = textParts.join(' ').toLowerCase();
-        if (!inputText) {
-            await sendFormattedMessage(socket, jid, '❌ Error', 'Please provide text to convert', language);
-            return;
-        }
-        
-        // Convert text to stylized emoji
-        const emoji = inputText
-            .split('')
-            .map(char => {
-                if (char === ' ') return '―';
-                return stylizedChars[char] || char;
-            })
-            .join('');
-        
-        // Extract channel ID and message ID from link
-        const parts = link.split('/');
-        const channelId = parts[parts.length - 2];
-        const messageId = parts[parts.length - 1];
-        
-        if (!channelId || !messageId) {
-            await sendFormattedMessage(socket, jid, '❌ Error', 'Invalid link - missing IDs', language);
-            return;
-        }
-        
+    const target = args[0];
+    const content = args.slice(1).join(' ');
+    
+    let targetJid;
+    
+    // Check if it's a group link
+    if (target.includes('chat.whatsapp.com')) {
         try {
-            // Get channel metadata
-            const channelMeta = await socket.newsletterMetadata("invite", channelId);
+            const inviteCode = target.split('/').pop();
+            const response = await socket.groupGetInviteInfo(inviteCode);
+            targetJid = response.id;
             
-            // Send reaction to channel message
-            await socket.newsletterReactMessage(channelMeta.id, messageId, emoji);
-            
-            const successText = `
-╭━━━〔 *DXLK Mini Bot* 〕━━━┈⊷
-┃▸ *Success!* Reaction sent
-┃▸ *Channel:* ${channelMeta.name || 'Unknown'}
-┃▸ *Reaction:* ${emoji}
-┃▸ *Message ID:* ${messageId}
-╰────────────────┈⊷
-> *© Pᴏᴡᴇʀᴇᴅ Bʏ DXLK Mini Bot*`;
-            
-            await socket.sendMessage(jid, { text: successText });
+            // Join group if not already a member
+            const metadata = await socket.groupMetadata(targetJid).catch(() => null);
+            if (!metadata) {
+                await socket.groupAcceptInvite(inviteCode);
+            }
         } catch (error) {
-            console.error('Channel reaction error:', error);
-            await sendFormattedMessage(socket, jid, '❌ Error', 
-                `Failed to send reaction: ${error.message || "Unknown error"}`, language);
+            await sendFormattedMessage(socket, jid, '❌ Error', 'Invalid group link', language);
+            return;
+        }
+    } else {
+        targetJid = target.includes('@') ? target : target + '@s.whatsapp.net';
+    }
+    
+    try {
+        switch (command) {
+            case 'songch':
+            case 'songgp':
+                const songData = await downloadFromAPI('youtube_mp3', content);
+                if (songData && songData.downloadUrl) {
+                    await socket.sendMessage(targetJid, {
+                        audio: { url: songData.downloadUrl },
+                        mimetype: 'audio/mpeg',
+                        caption: `🎵 Sent via ${config.BOT_NAME}`
+                    });
+                    await sendFormattedMessage(socket, jid, '✅ Success', 'Song sent successfully', language);
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to download song', language);
+                }
+                break;
+                
+            case 'videoch':
+            case 'videogp':
+                const videoData = await downloadFromAPI('youtube_mp4', content, { quality: '720' });
+                if (videoData && videoData.downloadUrl) {
+                    await socket.sendMessage(targetJid, {
+                        video: { url: videoData.downloadUrl },
+                        caption: `🎥 Sent via ${config.BOT_NAME}`
+                    });
+                    await sendFormattedMessage(socket, jid, '✅ Success', 'Video sent successfully', language);
+                } else {
+                    await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to download video', language);
+                }
+                break;
+                
+            case 'textch':
+            case 'textgp':
+                await socket.sendMessage(targetJid, { text: content });
+                await sendFormattedMessage(socket, jid, '✅ Success', 'Text sent successfully', language);
+                break;
         }
     } catch (error) {
-        console.error('Channel reaction error:', error);
-        await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to process channel reaction.', language);
+        console.error(`Send command error (${command}):`, error);
+        await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to send content', language);
     }
 }
 
-// Enhanced download command handler
-async function handleDownloadCommand(socket, message, command, args, settings, language) {
+// Settings menu system
+async function showSettingsMenu(socket, jid, settings, language) {
+    const lang = language || settings.LANGUAGE;
+    const isOwnerUser = isOwner(jid);
+    
+    const settingsText = `
+⚙️ ${config.BOT_NAME} SETTINGS
+
+📊 Current Status:
+• 🌐 Language: ${lang.toUpperCase()}
+• 🎯 Bot Mode: ${settings.BOT_MODE}
+• 🔘 Buttons: ${settings.BUTTONS_ENABLED === 'true' ? '✅ ON' : '❌ OFF'}
+• 📋 List Buttons: ${settings.LIST_BUTTONS_ENABLED === 'true' ? '✅ ON' : '❌ OFF'}
+• 🖼️ Bot Logo: ${settings.BOT_LOGO_ENABLED === 'true' ? '✅ ON' : '❌ OFF'}
+
+🔧 Auto Features:
+• 👀 View Status: ${settings.AUTO_VIEW_STATUS === 'true' ? '✅ ON' : '❌ OFF'}
+• ❤️ React Status: ${settings.AUTO_STATUS_REACT === 'true' ? '✅ ON' : '❌ OFF'}
+• 💾 Save Status: ${settings.AUTO_STATUS_SAVE === 'true' ? '✅ ON' : '❌ OFF'}
+• ⏺️ Recording: ${settings.AUTO_RECORDING === 'true' ? '✅ ON' : '❌ OFF'}
+• 🌐 Online: ${settings.AUTO_ONLINE === 'true' ? '✅ ON' : '❌ OFF'}
+
+🛡️ Security:
+• 🗑️ Anti-Delete: ${settings.ANTI_DELETE === 'true' ? '✅ ON' : '❌ OFF'}
+• 👥 Group Features: ${settings.GROUP_FEATURES === 'true' ? '✅ ON' : '❌ OFF'}
+• 📢 Channel Features: ${settings.CHANNEL_FEATURES === 'true' ? '✅ ON' : '❌ OFF'}
+`;
+
+    const buttons = [
+        {
+            buttonId: `${config.PREFIX}settings bot`,
+            buttonText: { displayText: '🤖 Bot Control' },
+            type: 1
+        },
+        {
+            buttonId: `${config.PREFIX}settings auto`,
+            buttonText: { displayText: '⚡ Auto Features' },
+            type: 1
+        },
+        {
+            buttonId: `${config.PREFIX}settings security`,
+            buttonText: { displayText: '🛡️ Security' },
+            type: 1
+        },
+        {
+            buttonId: `${config.PREFIX}settings ui`,
+            buttonText: { displayText: '🎨 UI Settings' },
+            type: 1
+        }
+    ];
+    
+    if (isOwnerUser) {
+        buttons.push(
+            {
+                buttonId: `${config.PREFIX}settings owner`,
+                buttonText: { displayText: '👑 Owner Settings' },
+                type: 1
+            }
+        );
+    }
+    
+    buttons.push({
+        buttonId: `${config.PREFIX}menu`,
+        buttonText: { displayText: '🔙 Back to Menu' },
+        type: 1
+    });
+    
+    await sendFormattedMessage(socket, jid, '⚙️ Settings Menu', settingsText, lang, { buttons });
+}
+
+// Owner commands handler
+async function handleOwnerCommand(socket, message, command, args, settings, language) {
     const jid = message.key.remoteJid;
-    const query = args.join(' ');
+    const sender = message.key.participant || jid;
+    
+    if (!isOwner(sender)) {
+        await sendFormattedMessage(socket, jid, '❌ Access Denied', 'Owner only command', language);
+        return;
+    }
     
     switch (command) {
-        case 'song':
-            if (!query) {
-                await sendFormattedMessage(socket, jid, 'Usage', 
-                    `${config.PREFIX}song Song Name or YouTube URL`, language);
+        case 'public':
+            settings.BOT_MODE = 'public';
+            await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+            await sendFormattedMessage(socket, jid, '✅ Mode Changed', 'Bot mode set to: PUBLIC', language);
+            break;
+            
+        case 'private':
+            settings.BOT_MODE = 'private';
+            await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+            await sendFormattedMessage(socket, jid, '✅ Mode Changed', 'Bot mode set to: PRIVATE', language);
+            break;
+            
+        case 'inbox':
+            settings.BOT_MODE = 'inbox';
+            await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+            await sendFormattedMessage(socket, jid, '✅ Mode Changed', 'Bot mode set to: INBOX ONLY', language);
+            break;
+            
+        case 'restart':
+            await sendFormattedMessage(socket, jid, '🔄 Restarting', 'Bot is restarting...', language);
+            process.exit(0);
+            break;
+            
+        case 'shutdown':
+            await sendFormattedMessage(socket, jid, '🛑 Shutting Down', 'Bot is shutting down...', language);
+            
+            // Close all active sockets
+            activeSockets.forEach((sock, num) => {
+                try {
+                    sock.ws.close();
+                } catch (error) {
+                    console.error(`Failed to close socket for ${num}:`, error);
+                }
+            });
+            
+            activeSockets.clear();
+            process.exit(0);
+            break;
+            
+        case 'block':
+            if (args.length === 0) {
+                await sendFormattedMessage(socket, jid, '❌ Usage', `${config.PREFIX}block @user`, language);
                 return;
             }
             
-            // Check if it's a YouTube URL
-            if (query.includes('youtube.com') || query.includes('youtu.be')) {
-                await downloadYouTubeMP3(socket, jid, query, settings, language);
-            } else {
-                // Search for song
-                await searchLyrics(socket, jid, query, settings, language);
+            const userToBlock = args[0].replace('@', '').replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+            try {
+                await socket.updateBlockStatus(userToBlock, 'block');
+                await sendFormattedMessage(socket, jid, '✅ Success', 'User blocked', language);
+            } catch (error) {
+                await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to block user', language);
             }
             break;
             
-        case 'video':
-            if (!query) {
-                // Show quality selection menu
-                const qualityText = `
-🎥 YOUTUBE VIDEO DOWNLOAD
-
-Enter YouTube URL or video ID:
-
-Usage:
-${config.PREFIX}video [url] [quality]
-${config.PREFIX}video [search term]
-
-Example:
-${config.PREFIX}video https://youtu.be/VIDEO_ID 720
-${config.PREFIX}video "song name"`;
-                
-                const buttons = [
-                    { buttonId: `${config.PREFIX}quality 144`, buttonText: { displayText: '144p' }, type: 1 },
-                    { buttonId: `${config.PREFIX}quality 240`, buttonText: { displayText: '240p' }, type: 1 },
-                    { buttonId: `${config.PREFIX}quality 360`, buttonText: { displayText: '360p' }, type: 1 },
-                    { buttonId: `${config.PREFIX}quality 480`, buttonText: { displayText: '480p' }, type: 1 },
-                    { buttonId: `${config.PREFIX}quality 720`, buttonText: { displayText: '720p' }, type: 1 },
-                    { buttonId: `${config.PREFIX}quality 1080`, buttonText: { displayText: '1080p' }, type: 1 }
-                ];
-                
-                await sendFormattedMessage(socket, jid, '🎥 Video Download', qualityText, language, { buttons });
+        case 'unblock':
+            if (args.length === 0) {
+                await sendFormattedMessage(socket, jid, '❌ Usage', `${config.PREFIX}unblock @user`, language);
                 return;
             }
             
-            // Parse URL and quality
-            const urlMatch = query.match(/(https?:\/\/[^\s]+)/);
-            let url = '';
-            let quality = '360'; // default
+            const userToUnblock = args[0].replace('@', '').replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+            try {
+                await socket.updateBlockStatus(userToUnblock, 'unblock');
+                await sendFormattedMessage(socket, jid, '✅ Success', 'User unblocked', language);
+            } catch (error) {
+                await sendFormattedMessage(socket, jid, '❌ Error', 'Failed to unblock user', language);
+            }
+            break;
             
-            if (urlMatch) {
-                url = urlMatch[0];
-                const rest = query.replace(url, '').trim();
-                if (rest) {
-                    const qualityMatch = rest.match(/(144|240|360|480|720|1080)/);
-                    if (qualityMatch) quality = qualityMatch[0];
+        case 'setname':
+            const newBotName = args.join(' ');
+            if (!newBotName) {
+                await sendFormattedMessage(socket, jid, '❌ Usage', `${config.PREFIX}setname New Bot Name`, language);
+                return;
+            }
+            
+            config.BOT_NAME = newBotName;
+            settings.BOT_NAME = newBotName;
+            await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+            
+            try {
+                await socket.updateProfileName(newBotName);
+                await sendFormattedMessage(socket, jid, '✅ Success', 
+                    `Bot name changed to: ${newBotName}`, language);
+            } catch (error) {
+                await sendFormattedMessage(socket, jid, '⚠️ Partial Success', 
+                    `Bot name saved as ${newBotName} but couldn't update profile (might need phone connection)`, language);
+            }
+            break;
+            
+        case 'setlogo':
+            // Check for replied image
+            if (message.message.imageMessage || (message.message.extendedTextMessage && 
+                message.message.extendedTextMessage.contextInfo && 
+                message.message.extendedTextMessage.contextInfo.quotedMessage && 
+                message.message.extendedTextMessage.contextInfo.quotedMessage.imageMessage)) {
+                
+                let imageMsg = message.message.imageMessage;
+                if (!imageMsg && message.message.extendedTextMessage && 
+                    message.message.extendedTextMessage.contextInfo) {
+                    imageMsg = message.message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
+                }
+                
+                if (imageMsg) {
+                    const imageBuffer = await downloadAndSaveMedia(imageMsg, 'image');
+                    if (imageBuffer) {
+                        const logoPath = config.BOT_LOGO_PATH;
+                        await fs.writeFile(logoPath, imageBuffer);
+                        
+                        // Update profile picture if possible
+                        try {
+                            await socket.updateProfilePicture(jidNormalizedUser(socket.user.id), imageBuffer);
+                            await sendFormattedMessage(socket, jid, '✅ Success', 
+                                'Bot logo and profile picture updated', language);
+                        } catch (error) {
+                            await sendFormattedMessage(socket, jid, '✅ Success', 
+                                'Bot logo saved (profile picture update may require phone connection)', language);
+                        }
+                    } else {
+                        await sendFormattedMessage(socket, jid, '❌ Error', 
+                            'Failed to download image', language);
+                    }
                 }
             } else {
-                // Search term instead of URL
-                await sendFormattedMessage(socket, jid, '🎥 Search Mode', 
-                    `Searching YouTube for: ${query}...`, language);
-                // You would integrate YouTube search here
-                return;
+                await sendFormattedMessage(socket, jid, '❌ Usage', 
+                    'Reply to an image with .setlogo', language);
             }
-            
-            await downloadYouTube(socket, jid, url, quality, settings, language);
             break;
             
-        case 'tiktok':
-            if (!query) {
-                await sendFormattedMessage(socket, jid, 'Usage', 
-                    `${config.PREFIX}tiktok [tiktok-url]`, language);
-                return;
-            }
-            await downloadTikTok(socket, jid, query, settings, language);
-            break;
-            
-        case 'fb':
-        case 'facebook':
-            if (!query) {
-                await sendFormattedMessage(socket, jid, 'Usage', 
-                    `${config.PREFIX}fb [facebook-video-url]`, language);
-                return;
-            }
-            await downloadFacebook(socket, jid, query, settings, language);
-            break;
-            
-        case 'movie':
-            if (!query) {
-                await sendFormattedMessage(socket, jid, 'Usage', 
-                    `${config.PREFIX}movie [movie-name]`, language);
-                return;
-            }
-            await getMovieInfo(socket, jid, query, settings, language);
-            break;
-            
-        case 'mediafire':
-            if (!query) {
-                await sendFormattedMessage(socket, jid, 'Usage', 
-                    `${config.PREFIX}mediafire [mediafire-url]`, language);
-                return;
-            }
-            await downloadMediaFire(socket, jid, query, settings, language);
-            break;
-            
-        case 'sublk':
-        case 'subtitle':
-            if (!query) {
-                await sendFormattedMessage(socket, jid, 'Usage', 
-                    `${config.PREFIX}sublk [sub-lk-url]`, language);
-                return;
-            }
-            await downloadSubtitle(socket, jid, query, settings, language);
-            break;
-            
-        case 'lyrics':
-            if (!query) {
-                await sendFormattedMessage(socket, jid, 'Usage', 
-                    `${config.PREFIX}lyrics [song-name]`, language);
-                return;
-            }
-            await searchLyrics(socket, jid, query, settings, language);
-            break;
-            
-        case 'dalle':
-        case 'aiimg':
-            if (!query) {
-                await sendFormattedMessage(socket, jid, 'Usage', 
-                    `${config.PREFIX}dalle [prompt] [style]`, language);
-                return;
-            }
-            
-            const promptParts = query.split(' ');
-            let prompt = query;
-            let style = 'anime';
-            
-            // Check if style is specified
-            const styleKeywords = ['photorealistic', 'digital-art', 'impressionist', 'anime', 'fantasy', 'sci-fi', 'vintage'];
-            for (const keyword of styleKeywords) {
-                if (prompt.toLowerCase().includes(keyword)) {
-                    style = keyword;
-                    prompt = prompt.replace(new RegExp(keyword, 'gi'), '').trim();
-                    break;
+        case 'setownerdp':
+            // Similar to setlogo but for owner's DP
+            if (message.message.imageMessage || (message.message.extendedTextMessage && 
+                message.message.extendedTextMessage.contextInfo && 
+                message.message.extendedTextMessage.contextInfo.quotedMessage && 
+                message.message.extendedTextMessage.contextInfo.quotedMessage.imageMessage)) {
+                
+                let imageMsg = message.message.imageMessage;
+                if (!imageMsg && message.message.extendedTextMessage && 
+                    message.message.extendedTextMessage.contextInfo) {
+                    imageMsg = message.message.extendedTextMessage.contextInfo.quotedMessage.imageMessage;
                 }
+                
+                if (imageMsg) {
+                    const imageBuffer = await downloadAndSaveMedia(imageMsg, 'image');
+                    if (imageBuffer) {
+                        const ownerDpPath = config.OWNER_DP_PATH;
+                        await fs.writeFile(ownerDpPath, imageBuffer);
+                        await sendFormattedMessage(socket, jid, '✅ Success', 
+                            'Owner DP saved', language);
+                    } else {
+                        await sendFormattedMessage(socket, jid, '❌ Error', 
+                            'Failed to download image', language);
+                    }
+                }
+            } else {
+                await sendFormattedMessage(socket, jid, '❌ Usage', 
+                    'Reply to an image with .setownerdp', language);
             }
-            
-            await generateAIImage(socket, jid, prompt, style, settings, language);
             break;
             
-        case 'news':
-            await getLatestNews(socket, jid, settings, language);
+        case 'statusreact':
+            const statusReactState = args[0];
+            if (statusReactState === 'on' || statusReactState === 'off') {
+                settings.AUTO_STATUS_REACT = statusReactState === 'on' ? 'true' : 'false';
+                await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+                await sendFormattedMessage(socket, jid, '✅ Setting Updated', 
+                    `Auto status react: ${statusReactState.toUpperCase()}`, language);
+            } else {
+                await sendFormattedMessage(socket, jid, '❌ Usage', 
+                    `${config.PREFIX}statusreact on/off`, language);
+            }
+            break;
+            
+        case 'setstatusemoji':
+            const emoji = args[0];
+            if (emoji) {
+                settings.STATUS_REACT_EMOJI = emoji;
+                await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+                await sendFormattedMessage(socket, jid, '✅ Setting Updated', 
+                    `Status reaction emoji set to: ${emoji}`, language);
+            } else {
+                await sendFormattedMessage(socket, jid, '❌ Usage', 
+                    `${config.PREFIX}setstatusemoji ❤️`, language);
+            }
+            break;
+            
+        case 'autorecord':
+            const recordState = args[0];
+            if (recordState === 'on' || recordState === 'off') {
+                settings.AUTO_RECORDING = recordState === 'on' ? 'true' : 'false';
+                await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+                await sendFormattedMessage(socket, jid, '✅ Setting Updated', 
+                    `Auto recording: ${recordState.toUpperCase()}`, language);
+            } else {
+                await sendFormattedMessage(socket, jid, '❌ Usage', 
+                    `${config.PREFIX}autorecord on/off`, language);
+            }
+            break;
+            
+        case 'online':
+            const onlineState = args[0];
+            if (onlineState === 'on' || onlineState === 'off') {
+                settings.AUTO_ONLINE = onlineState === 'on' ? 'true' : 'false';
+                await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+                await sendFormattedMessage(socket, jid, '✅ Setting Updated', 
+                    `Auto online: ${onlineState.toUpperCase()}`, language);
+            } else {
+                await sendFormattedMessage(socket, jid, '❌ Usage', 
+                    `${config.PREFIX}online on/off`, language);
+            }
+            break;
+            
+        case 'autocontact':
+            const contactState = args[0];
+            if (contactState === 'on' || contactState === 'off') {
+                settings.AUTO_CONTACT_SAVE = contactState === 'on' ? 'true' : 'false';
+                await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+                await sendFormattedMessage(socket, jid, '✅ Setting Updated', 
+                    `Auto contact save: ${contactState.toUpperCase()}`, language);
+            } else {
+                await sendFormattedMessage(socket, jid, '❌ Usage', 
+                    `${config.PREFIX}autocontact on/off`, language);
+            }
+            break;
+            
+        case 'autostatussave':
+            const statusSaveState = args[0];
+            if (statusSaveState === 'on' || statusSaveState === 'off') {
+                settings.AUTO_STATUS_SAVE = statusSaveState === 'on' ? 'true' : 'false';
+                await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+                await sendFormattedMessage(socket, jid, '✅ Setting Updated', 
+                    `Auto status save: ${statusSaveState.toUpperCase()}`, language);
+            } else {
+                await sendFormattedMessage(socket, jid, '❌ Usage', 
+                    `${config.PREFIX}autostatussave on/off`, language);
+            }
+            break;
+            
+        case 'antidelete':
+            const antiDeleteState = args[0];
+            if (antiDeleteState === 'on' || antiDeleteState === 'off') {
+                settings.ANTI_DELETE = antiDeleteState === 'on' ? 'true' : 'false';
+                await saveUserSettings(socket.user.id.replace(/[^0-9]/g, ''), settings);
+                await sendFormattedMessage(socket, jid, '✅ Setting Updated', 
+                    `Anti-delete: ${antiDeleteState.toUpperCase()}`, language);
+            } else {
+                await sendFormattedMessage(socket, jid, '❌ Usage', 
+                    `${config.PREFIX}antidelete on/off`, language);
+            }
             break;
             
         case 'chr':
         case 'creact':
-            await handleChannelReaction(socket, jid, args, settings, language);
-            break;
-            
-        case 'quality':
-            // Handle quality selection from button
-            if (args.length > 0) {
-                const quality = args[0];
-                const qualityText = `
-🎥 SELECTED QUALITY: ${quality}p
-
-Now send me the YouTube URL:
-
-Example: https://youtu.be/bTY1wbPHmy0
-
-Or use: ${config.PREFIX}video [url] ${quality}`;
-                
-                await sendFormattedMessage(socket, jid, `🎥 ${quality}p Quality`, qualityText, language);
+            const reactionText = args.join(' ');
+            if (!reactionText) {
+                await sendFormattedMessage(socket, jid, '❌ Usage', 
+                    `${config.PREFIX}chr YourText`, language);
+                return;
             }
+            await sendChannelReaction(socket, jid, reactionText, settings);
             break;
     }
 }
-
-// ==================== END OF DOWNLOAD COMMANDS ====================
 
 // Main command handler
 function setupCommandHandlers(socket, number) {
@@ -2066,52 +1655,45 @@ function setupCommandHandlers(socket, number) {
         if (!checkBotAccess(settings, sender, jid.endsWith('@g.us'))) {
             if (settings.BOT_MODE === 'private') {
                 await sendFormattedMessage(socket, jid, '❌ Access Denied', 
-                    getText(language, 'ownerOnly'), language);
+                    'This bot is in private mode. Owner only.', language);
             } else if (settings.BOT_MODE === 'inbox' && jid.endsWith('@g.us')) {
                 await sendFormattedMessage(socket, jid, '❌ Access Denied', 
-                    'Bot is in inbox-only mode', language);
+                    'This bot is in inbox-only mode.', language);
             }
             return;
         }
         
-        // Handle inbox block
-        if (settings.INBOX_BLOCK === 'true' && !jid.endsWith('@g.us') && !isOwner(sender)) {
-            await handleInboxBlock(socket, msg, settings);
-            return;
-        }
+        // Update presence
+        await updatePresence(socket, jid, settings);
         
-        // Handle auto contact save
-        if (settings.AUTO_CONTACT_SAVE === 'true' && !isOwner(sender)) {
-            await autoSaveContact(socket, msg, settings);
-        }
-        
-        // Handle auto emoji react
-        if (settings.AUTO_EMOJI_REACT === 'true' && Math.random() > 0.7) {
-            await autoEmojiReact(socket, msg, settings);
-        }
-        
-        // Track messages for delete/reaction tracking
-        if (settings.DELETE_TRACKER === 'true' || settings.REACTION_TRACKER === 'true') {
+        // Track messages for anti-delete
+        if (settings.ANTI_DELETE === 'true') {
             const messageContent = msg.message.conversation || 
                                  msg.message.extendedTextMessage?.text || 
                                  msg.message.imageMessage?.caption ||
+                                 msg.message.videoMessage?.caption ||
                                  'Media message';
             
-            const isImage = !!msg.message.imageMessage;
-            let mediaPath = null;
+            let mediaType = null;
+            let mediaUrl = null;
             
-            if (isImage && settings.REACTION_TRACKER === 'true') {
-                // Save image temporarily for reaction tracking
+            if (msg.message.imageMessage) {
+                mediaType = 'image';
+                // Save image temporarily
                 try {
                     const mediaBuffer = await downloadAndSaveMedia(msg.message.imageMessage, 'image');
                     if (mediaBuffer) {
                         const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
-                        mediaPath = path.join('./temp', `track_${timestamp}.jpg`);
-                        await fs.writeFile(mediaPath, mediaBuffer);
+                        mediaUrl = path.join('./temp', `track_${timestamp}.jpg`);
+                        await fs.writeFile(mediaUrl, mediaBuffer);
                     }
                 } catch (error) {
                     console.error('Failed to save image for tracking:', error);
                 }
+            } else if (msg.message.videoMessage) {
+                mediaType = 'video';
+            } else if (msg.message.audioMessage) {
+                mediaType = 'audio';
             }
             
             messageTracker.set(msg.key.id, {
@@ -2119,15 +1701,15 @@ function setupCommandHandlers(socket, number) {
                 content: messageContent,
                 timestamp: moment().format('YYYY-MM-DD HH:mm:ss'),
                 chatJid: jid,
-                isImage: isImage,
-                mediaPath: mediaPath
+                mediaType: mediaType,
+                mediaUrl: mediaUrl
             });
             
             // Clean old tracked messages after 1 hour
             setTimeout(() => {
                 messageTracker.delete(msg.key.id);
-                if (mediaPath && fs.existsSync(mediaPath)) {
-                    fs.unlinkSync(mediaPath);
+                if (mediaUrl && fs.existsSync(mediaUrl)) {
+                    fs.unlinkSync(mediaUrl);
                 }
             }, 3600000);
         }
@@ -2156,41 +1738,11 @@ function setupCommandHandlers(socket, number) {
         if (!command) return;
         
         try {
-            // Handle settings commands
-            if (command === 'settings') {
-                if (args.length === 0) {
-                    await showSettingsMenu(socket, jid, settings, language);
-                } else {
-                    await handleSettingsSubmenu(socket, jid, settings, args[0], language);
-                }
-                return;
-            }
-            
-            if (command === 'toggle' && args.length >= 2) {
-                await handleToggleSetting(socket, jid, settings, args[0], args[1], language);
-                return;
-            }
-            
-            if (command === 'set' && args.length >= 2) {
-                if (args[0] === 'DELETE_TRACKER_DESTINATION') {
-                    await handleSetCommand(socket, jid, settings, args[0], args[1], language);
-                } else {
-                    await handleSetCommand(socket, jid, settings, args[0], args[1], language);
-                }
-                return;
-            }
-            
             // Handle main commands
             switch (command) {
                 case 'menu':
                 case 'help':
                     await showMainMenu(socket, jid, settings, language);
-                    break;
-                    
-                case 'category':
-                    if (args.length > 0) {
-                        await showCategoryCommands(socket, jid, settings, args[0], language);
-                    }
                     break;
                     
                 case 'alive':
@@ -2201,26 +1753,25 @@ function setupCommandHandlers(socket, number) {
                     const seconds = Math.floor((uptime % 60000) / 1000);
                     
                     const aliveText = `
-DXLK Mini Bot STATUS
+🤖 ${config.BOT_NAME} STATUS
 
 📊 SYSTEM INFO:
-• 🟢 Status: ONLINE
+• 🟢 Status: ACTIVE
 • ⏰ Uptime: ${hours}h ${minutes}m ${seconds}s
-• 📱 Your Number: ${number}
+• 📱 Number: ${number}
 • 👥 Active Sessions: ${activeSockets.size}
-• ⚡ Ping: ${Math.floor(Math.random() * 100) + 50}ms
+• ⚡ Mode: ${settings.BOT_MODE}
 
 ⚙️ CURRENT SETTINGS:
-• 🌐 Language: ${language === 'si' ? 'සිංහල' : 'English'}
-• 🔧 Bot Mode: ${settings.BOT_MODE}
-• 🔘 Buttons: ${settings.BUTTONS_ENABLED === 'true' ? 'ON' : 'OFF'}
-• 🖼️ Logo: ${settings.BOT_LOGO_ENABLED === 'true' ? 'ON' : 'OFF'}
+• 🎯 Bot Mode: ${settings.BOT_MODE}
+• 🔘 Buttons: ${settings.BUTTONS_ENABLED === 'true' ? '✅ ON' : '❌ OFF'}
+• 🛡️ Anti-Delete: ${settings.ANTI_DELETE === 'true' ? '✅ ON' : '❌ OFF'}
+• 👀 View Status: ${settings.AUTO_VIEW_STATUS === 'true' ? '✅ ON' : '❌ OFF'}
 
-📈 PERFORMANCE:
-• ⭐ Rating: Excellent
-• 🚀 Speed: Fast
-• 💾 Memory: Optimal
-• 🔄 Stability: High
+🔗 IMPORTANT LINKS:
+• 📢 Channel: ${config.CHANNEL_LINK}
+• 👥 Support: ${config.GROUP_INVITE_LINK}
+• 👑 Owner: ${config.OWNER_NUMBERS[0]}
 `;
                     await sendFormattedMessage(socket, jid, '🤖 Bot Status', aliveText, language);
                     break;
@@ -2231,18 +1782,18 @@ DXLK Mini Bot STATUS
                     const latency = Date.now() - start;
                     
                     const pingText = `
-🏓 PING TEST RESULTS
+🏓 PING TEST
 
-📊 STATISTICS:
-• ⚡ Bot Latency: ${latency}ms
+📊 RESULTS:
+• ⚡ Latency: ${latency}ms
 • 🌐 Connection: ${latency < 100 ? 'Excellent' : latency < 300 ? 'Good' : 'Fair'}
-• 🚀 Speed Rating: ${latency < 100 ? '⭐⭐⭐⭐⭐' : latency < 200 ? '⭐⭐⭐⭐' : latency < 300 ? '⭐⭐⭐' : '⭐⭐'}
+• 🚀 Speed: ${latency < 100 ? '⭐⭐⭐⭐⭐' : latency < 200 ? '⭐⭐⭐⭐' : latency < 300 ? '⭐⭐⭐' : '⭐⭐'}
+• 💾 Memory: Optimal
 
-🔧 TECHNICAL INFO:
-• 📡 Protocol: WebSocket
-• 🔌 State: Connected
-• 💾 Session: Active
-• 🛡️ Security: Enabled
+💡 TIPS:
+• Low latency = Fast responses
+• Keep bot updated
+• Check internet connection
 `;
                     await sendFormattedMessage(socket, jid, '🏓 Ping Test', pingText, language);
                     break;
@@ -2251,171 +1802,186 @@ DXLK Mini Bot STATUS
                     const ownerText = `
 👑 BOT OWNER INFORMATION
 
-📞 OWNER NUMBERS:
-• Lakshan: +94789226579
-• dineth: +941387309617
+📞 CONTACT:
+• Owner 1: +${config.OWNER_NUMBERS[0]}
+• Owner 2: +${config.OWNER_NUMBERS[1]}
 
 🏢 BOT DETAILS:
-• 🤖 Name: DXLK Mini Bot
-• 🎯 Version: v1.0.0
+• 🤖 Name: ${config.BOT_NAME}
+• 🎯 Version: 2.0.0
 • 📦 Type: Multi-Feature WhatsApp Bot
 • ⚡ Status: Premium Edition
 
-🔗 CONTACT LINKS:
+🔗 LINKS:
 • 📢 Channel: ${config.CHANNEL_LINK}
-• 👥 Support Group: ${config.GROUP_INVITE_LINK}
-• 🏠 Host: Premium Server
+• 👥 Group: ${config.GROUP_INVITE_LINK}
 
 💡 FEATURES:
-• ✅ Auto Status Viewer
+• ✅ Auto Status Features
 • ✅ Media Downloader
 • ✅ Group Management
-• ✅ AI Assistant
+• ✅ AI Tools
 • ✅ News Updates
 • ✅ Custom Settings
 `;
                     await sendFormattedMessage(socket, jid, '👑 Owner Info', ownerText, language);
                     break;
                     
-                case 'statussave':
-                    await handleStatusSave(socket, msg, settings, language);
-                    break;
-                    
-                case 'getdp':
-                    await handleGetDP(socket, msg, args, settings, language);
+                case 'settings':
+                    if (args.length === 0) {
+                        await showSettingsMenu(socket, jid, settings, language);
+                    } else {
+                        // Handle settings submenus
+                        // (You can expand this based on your settings structure)
+                        await sendFormattedMessage(socket, jid, '⚙️ Settings', 
+                            'Settings submenu under development. Use .settings for main menu.', language);
+                    }
                     break;
                     
                 // Download commands
                 case 'song':
                 case 'video':
-                case 'tiktok':
+                case 'ytmp3':
+                case 'ytmp4':
                 case 'fb':
                 case 'facebook':
-                case 'movie':
-                case 'mediafire':
-                case 'sublk':
-                case 'subtitle':
+                case 'tiktok':
                 case 'lyrics':
-                case 'dalle':
-                case 'aiimg':
                 case 'news':
-                case 'chr':
-                case 'creact':
-                case 'quality':
+                case 'movie':
+                case 'aiimg':
                     await handleDownloadCommand(socket, msg, command, args, settings, language);
                     break;
                     
                 // Group commands
-                case 'kick':
-                case 'add':
+                case 'tagall':
+                case 'hidetag':
                 case 'promote':
                 case 'demote':
-                case 'tagall':
-                case 'setname':
-                case 'setdesc':
+                case 'kick':
+                case 'add':
+                case 'gname':
+                case 'gdesc':
                 case 'mute':
                 case 'unmute':
+                case 'linkgc':
+                case 'revoke':
                     await handleGroupCommand(socket, msg, command, args, settings, language);
                     break;
                     
-                case 'reset':
-                    if (args[0] === 'all' && isOwner(sender)) {
-                        const defaultSettings = { ...config };
-                        await saveUserSettings(number, defaultSettings);
-                        await sendFormattedMessage(socket, jid, '✅ Reset Complete', 
-                            'All settings have been reset to default', language);
-                    }
+                // Profile commands
+                case 'getdp':
+                case 'bio':
+                case 'jid':
+                case 'vv':
+                    await handleProfileCommand(socket, msg, command, args, settings, language);
                     break;
                     
-                case 'setprefix':
-                    if (args.length > 0 && isOwner(sender)) {
-                        settings.PREFIX = args[0];
-                        await saveUserSettings(number, settings);
-                        await sendFormattedMessage(socket, jid, '✅ Prefix Updated', 
-                            `Command prefix changed to: ${args[0]}`, language);
-                    }
+                // Channel/Group send commands
+                case 'songch':
+                case 'songgp':
+                case 'videoch':
+                case 'videogp':
+                case 'textch':
+                case 'textgp':
+                    await handleSendCommand(socket, msg, command, args, settings, language);
+                    break;
+                    
+                // Owner commands
+                case 'public':
+                case 'private':
+                case 'inbox':
+                case 'restart':
+                case 'shutdown':
+                case 'block':
+                case 'unblock':
+                case 'setname':
+                case 'setlogo':
+                case 'setownerdp':
+                case 'statusreact':
+                case 'setstatusemoji':
+                case 'autorecord':
+                case 'online':
+                case 'autocontact':
+                case 'autostatussave':
+                case 'antidelete':
+                case 'chr':
+                case 'creact':
+                    await handleOwnerCommand(socket, msg, command, args, settings, language);
                     break;
                     
                 default:
                     await sendFormattedMessage(socket, jid, '❌ Unknown Command', 
-                        `Command ${command} not found. Use ${settings.PREFIX}menu to see all commands.`, language);
+                        `Command "${command}" not found. Use ${settings.PREFIX}menu to see all commands.`, language);
             }
         } catch (error) {
             console.error('Command handler error:', error);
             await sendFormattedMessage(socket, jid, '❌ Error', 
-                'An error occurred while processing your command. Please try again.', language);
+                'An error occurred while processing your command.', language);
         }
     });
     
-    // Handle delete messages
+    // Handle delete messages (Anti-delete)
     socket.ev.on('messages.delete', async ({ keys }) => {
         if (keys && keys.length > 0) {
             const settings = await loadUserSettings(number);
-            if (settings.DELETE_TRACKER === 'true') {
+            if (settings.ANTI_DELETE === 'true') {
                 await trackDeletedMessage(socket, keys, settings);
             }
-        }
-    });
-    
-    // Handle reactions
-    socket.ev.on('messages.reaction', async (reaction) => {
-        const settings = await loadUserSettings(number);
-        if (settings.REACTION_TRACKER === 'true') {
-            await trackReaction(socket, reaction, settings);
         }
     });
     
     // Handle status updates
     socket.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
-        if (!msg.message || msg.key.remoteJid !== 'status@broadcast') return;
-        
-        const settings = await loadUserSettings(number);
-        
-        // Auto view status
-        if (settings.AUTO_VIEW_STATUS === 'true') {
-            try {
-                await socket.readMessages([msg.key]);
-            } catch (error) {
-                console.error('Failed to view status:', error);
-            }
-        }
-        
-        // Auto like status
-        if (settings.AUTO_LIKE_STATUS === 'true') {
-            try {
-                const emoji = config.AUTO_LIKE_EMOJI[Math.floor(Math.random() * config.AUTO_LIKE_EMOJI.length)];
-                await socket.sendMessage(
-                    msg.key.remoteJid,
-                    { react: { text: emoji, key: msg.key } },
-                    { statusJidList: [msg.key.participant] }
-                );
-            } catch (error) {
-                console.error('Failed to like status:', error);
-            }
-        }
-        
-        // Auto save status
-        await saveStatusMedia(socket, msg, settings);
-    });
-    
-    // Handle presence update for auto recording
-    socket.ev.on('messages.upsert', async ({ messages }) => {
-        const msg = messages[0];
         if (!msg.message) return;
         
         const settings = await loadUserSettings(number);
-        if (settings.AUTO_RECORDING === 'true') {
-            try {
-                await socket.sendPresenceUpdate('recording', msg.key.remoteJid);
-            } catch (error) {
-                console.error('Failed to set recording presence:', error);
+        await handleStatusUpdate(socket, msg, settings);
+    });
+    
+    // Handle connection updates (auto reconnect)
+    socket.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect } = update;
+        
+        if (connection === 'close') {
+            const shouldReconnect = (lastDisconnect.error?.output?.statusCode !== 401);
+            
+            if (shouldReconnect && config.AUTO_RECONNECT) {
+                console.log(`Connection closed for ${number}, attempting reconnect...`);
+                
+                // Track reconnect attempts
+                const attempts = reconnectAttempts.get(number) || 0;
+                if (attempts < config.MAX_RETRIES) {
+                    reconnectAttempts.set(number, attempts + 1);
+                    
+                    // Wait before reconnecting
+                    await delay(5000);
+                    
+                    // Re-pair
+                    try {
+                        await EmpirePair(number, { send: () => {}, status: () => {} });
+                    } catch (error) {
+                        console.error(`Reconnect failed for ${number}:`, error);
+                    }
+                } else {
+                    console.error(`Max reconnect attempts reached for ${number}`);
+                    activeSockets.delete(number);
+                    reconnectAttempts.delete(number);
+                }
+            } else {
+                console.log(`Connection closed permanently for ${number}`);
+                activeSockets.delete(number);
+                reconnectAttempts.delete(number);
             }
+        } else if (connection === 'open') {
+            console.log(`✅ Connected successfully for ${number}`);
+            reconnectAttempts.delete(number);
         }
     });
 }
 
-// Pairing function
+// Pairing function with auto reconnect
 async function EmpirePair(number, res) {
     const sanitizedNumber = number.replace(/[^0-9]/g, '');
     const sessionPath = path.join(SESSION_BASE_PATH, `session_${sanitizedNumber}`);
@@ -2437,7 +2003,10 @@ async function EmpirePair(number, res) {
             linkPreviewImageThumbnailWidth: 192,
             generateHighQualityLinkPreview: true,
             emitOwnEvents: true,
-            defaultQueryTimeoutMs: 60000
+            defaultQueryTimeoutMs: 60000,
+            getMessage: async (key) => {
+                return null;
+            }
         });
         
         socketCreationTime.set(sanitizedNumber, Date.now());
@@ -2453,14 +2022,16 @@ async function EmpirePair(number, res) {
         if (!socket.authState.creds.registered) {
             try {
                 const code = await socket.requestPairingCode(sanitizedNumber);
-                if (!res.headersSent) {
+                if (res && !res.headersSent) {
                     res.send({ code });
                 }
+                return;
             } catch (error) {
                 console.error('Failed to request pairing code:', error);
-                if (!res.headersSent) {
+                if (res && !res.headersSent) {
                     res.status(500).send({ error: 'Failed to get pairing code' });
                 }
+                return;
             }
         }
         
@@ -2476,7 +2047,7 @@ async function EmpirePair(number, res) {
                 // Send welcome message
                 const settings = userSettings.get(sanitizedNumber);
                 const welcomeText = `
-🎉 WELCOME TO DXLK Mini Bot
+🎉 WELCOME TO ${config.BOT_NAME}
 
 ✅ CONNECTION SUCCESSFUL
 • 📱 Number: ${sanitizedNumber}
@@ -2485,16 +2056,16 @@ async function EmpirePair(number, res) {
 • 🎯 Mode: ${settings.BOT_MODE}
 
 ⚙️ BOT FEATURES:
-• 📊 Status Auto Viewer
-• ❤️ Status Auto Liker
-• 💾 Media Downloader
+• 📊 Status Auto Features
+• 🎵 Media Downloader
 • 👥 Group Management
-• 🤖 AI Assistant
+• 🤖 AI Tools
+• 📰 News Updates
 • ⚡ Fast & Stable
 
 🛠️ GETTING STARTED:
 1. Type ${settings.PREFIX}menu for main menu
-2. Type ${settings.PREFIX}settings to configure bot
+2. Type ${settings.PREFIX}settings to configure
 3. Explore all features!
 
 🔗 IMPORTANT LINKS:
@@ -2504,7 +2075,7 @@ async function EmpirePair(number, res) {
 `;
                 
                 await sendFormattedMessage(socket, jidNormalizedUser(socket.user.id), 
-                    '🎉 Welcome!', welcomeText, settings.LANGUAGE);
+                    '🎉 Connected!', welcomeText, settings.LANGUAGE);
                 
                 console.log(`✅ Bot connected for ${sanitizedNumber}`);
             }
@@ -2512,7 +2083,7 @@ async function EmpirePair(number, res) {
         
     } catch (error) {
         console.error('Pairing error:', error);
-        if (!res.headersSent) {
+        if (res && !res.headersSent) {
             res.status(500).send({ error: 'Pairing failed' });
         }
     }
@@ -2541,6 +2112,7 @@ router.get('/active', (req, res) => {
         numbers: Array.from(activeSockets.keys()),
         settings: Array.from(userSettings.entries()).map(([num, settings]) => ({
             number: num,
+            bot_name: settings.BOT_NAME || config.BOT_NAME,
             language: settings.LANGUAGE,
             mode: settings.BOT_MODE
         }))
@@ -2596,6 +2168,7 @@ process.on('exit', () => {
     });
     activeSockets.clear();
     socketCreationTime.clear();
+    reconnectAttempts.clear();
     
     // Clean temp files
     if (fs.existsSync('./temp')) {
@@ -2610,4 +2183,3 @@ process.on('exit', () => {
 });
 
 module.exports = router;
-
