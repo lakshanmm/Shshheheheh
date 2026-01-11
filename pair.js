@@ -1,3 +1,5 @@
+[file name]: pair.js
+[file content begin]
 const express = require('express');
 const fs = require('fs-extra');
 const path = require('path');
@@ -10,7 +12,6 @@ const moment = require('moment-timezone');
 const Jimp = require('jimp');
 const crypto = require('crypto');
 const axios = require('axios');
-const { PrismaClient } = require('@prisma/client');
 
 const {
     default: makeWASocket,
@@ -26,9 +27,6 @@ const {
     downloadContentFromMessage,
     getAggregateVotesInPollMessage
 } = require('@whiskeysockets/baileys');
-
-// Initialize Prisma for database
-const prisma = new PrismaClient();
 
 // Config with defaults
 const config = {
@@ -67,7 +65,7 @@ const config = {
             ownerOnly: '👑 මෙම අණ පාලකයාට පමණි',
             groupOnly: '👥 මෙම අණ කණ්ඩායම් සඳහා පමණි',
             noPermission: '❌ අවසරයක් නැත',
-            footer: '© DXLK Mini Bot'
+            footer: '© LAKSHAN-MD | Laki Mini Bot'
         },
         en: {
             menuTitle: '📋 Menu',
@@ -78,7 +76,7 @@ const config = {
             ownerOnly: '👑 Owner only command',
             groupOnly: '👥 Group only command',
             noPermission: '❌ No permission',
-            footer: 'DXLK Mini Bot'
+            footer: '©DXLK Mini Bot'
         }
     },
     AUTO_LIKE_EMOJI: ['❤️', '🔥', '👍', '🎉', '👏', '😍', '🤩', '💯'],
@@ -101,6 +99,16 @@ const userSettings = new Map();
 const blockedUsers = new Set();
 const statusSaves = new Map();
 const messageTracker = new Map();
+
+// Stylized characters for channel reactions
+const stylizedChars = {
+    a: '🅐', b: '🅑', c: '🅒', d: '🅓', e: '🅔', f: '🅕', g: '🅖',
+    h: '🅗', i: '🅘', j: '🅙', k: '🅚', l: '🅛', m: '🅜', n: '🅝',
+    o: '🅞', p: '🅟', q: '🅠', r: '🅡', s: '🅢', t: '🅣', u: '🅤',
+    v: '🅥', w: '🅦', x: '🅧', y: '🅨', z: '🅩',
+    '0': '⓿', '1': '➊', '2': '➋', '3': '➌', '4': '➍',
+    '5': '➎', '6': '➏', '7': '➐', '8': '➑', '9': '➒'
+};
 
 // Create necessary directories
 ['./assets', './status_saves', './temp', SESSION_BASE_PATH].forEach(dir => {
@@ -927,7 +935,7 @@ async function showMainMenu(socket, jid, settings, language) {
     
     const listMessage = {
         title: getText(lang, 'menuTitle'),
-        text: 'DXLK Mini Bot  v1.0.0',
+        text: 'LAKSHAN-MD LITE v1.0.0',
         footer: getText(lang, 'footer'),
         buttonText: 'Select Category',
         sections: [
@@ -1010,11 +1018,13 @@ async function showCategoryCommands(socket, jid, settings, category, language) {
         case 'download':
             title = '⬇️ DOWNLOAD COMMANDS';
             commands = [
-                { cmd: 'song', desc: 'Download songs' },
+                { cmd: 'song', desc: 'Download songs (MP3)' },
                 { cmd: 'video', desc: 'Download YouTube videos' },
                 { cmd: 'tiktok', desc: 'Download TikTok videos' },
                 { cmd: 'fb', desc: 'Download Facebook videos' },
-                { cmd: 'movie', desc: 'Get movie info & links' }
+                { cmd: 'movie', desc: 'Get movie info & links' },
+                { cmd: 'mediafire', desc: 'Download from MediaFire' },
+                { cmd: 'sublk', desc: 'Download subtitles' }
             ];
             break;
             
@@ -1038,7 +1048,8 @@ async function showCategoryCommands(socket, jid, settings, category, language) {
                 { cmd: 'eval', desc: 'Execute code' },
                 { cmd: 'exec', desc: 'Execute shell command' },
                 { cmd: 'block', desc: 'Block user' },
-                { cmd: 'unblock', desc: 'Unblock user' }
+                { cmd: 'unblock', desc: 'Unblock user' },
+                { cmd: 'chr', desc: 'Channel reaction' }
             ];
             break;
             
@@ -1048,7 +1059,8 @@ async function showCategoryCommands(socket, jid, settings, category, language) {
                 { cmd: 'google', desc: 'Google search' },
                 { cmd: 'image', desc: 'Search images' },
                 { cmd: 'weather', desc: 'Weather info' },
-                { cmd: 'wiki', desc: 'Wikipedia search' }
+                { cmd: 'wiki', desc: 'Wikipedia search' },
+                { cmd: 'lyrics', desc: 'Search song lyrics' }
             ];
             break;
             
@@ -1067,7 +1079,7 @@ async function showCategoryCommands(socket, jid, settings, category, language) {
             commands = [
                 { cmd: 'ai', desc: 'Chat with AI' },
                 { cmd: 'gpt', desc: 'ChatGPT' },
-                { cmd: 'dalle', desc: 'Generate images' },
+                { cmd: 'dalle', desc: 'Generate AI images' },
                 { cmd: 'translate', desc: 'Translate text' }
             ];
             break;
@@ -1440,6 +1452,42 @@ async function downloadYouTube(socket, jid, url, quality, settings, language) {
     }
 }
 
+// Download YouTube MP3
+async function downloadYouTubeMP3(socket, jid, url, settings, language) {
+    try {
+        await sendFormattedMessage(socket, jid, '🎵 YouTube MP3 Download', 
+            'Converting YouTube video to MP3... Please wait ⏳', language);
+        
+        const apiUrl = `https://movanest.xyz/v2/ytmp3?url=${encodeURIComponent(url)}&quality=128`;
+        const response = await axios.get(apiUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 60000
+        });
+        
+        if (response.data && response.data.downloadUrl) {
+            await sendFormattedMessage(socket, jid, '✅ YouTube MP3 Download', 
+                'Audio converted successfully! Sending now...', language);
+            
+            const title = response.data.title || 'YouTube Audio';
+            const duration = response.data.duration || 'N/A';
+            const size = response.data.size || 'N/A';
+            
+            await socket.sendMessage(jid, {
+                audio: { url: response.data.downloadUrl },
+                mimetype: 'audio/mpeg',
+                caption: `🎵 YouTube Audio\n📝 Title: ${title}\n⏱️ Duration: ${duration}\n💾 Size: ${size}\n🔗 Source: ${url}\n⏱️ Downloaded via LAKSHAN-MD Bot`
+            });
+        } else {
+            await sendFormattedMessage(socket, jid, '❌ Error', 
+                'Failed to convert YouTube to MP3. Please check the URL.', language);
+        }
+    } catch (error) {
+        console.error('YouTube MP3 download error:', error);
+        await sendFormattedMessage(socket, jid, '❌ Error', 
+            'Failed to convert YouTube to MP3. Please try again later.', language);
+    }
+}
+
 // Download from MediaFire
 async function downloadMediaFire(socket, jid, url, settings, language) {
     try {
@@ -1482,7 +1530,7 @@ Downloading file now...`;
                     caption: `🎥 Video from MediaFire\n📄 ${fileName}\n🔗 Source: ${url}`
                 });
             } else if (fileName.match(/\.(mp3|wav|ogg)$/i)) {
-                await socket.sendMessage(socket, jid, {
+                await socket.sendMessage(jid, {
                     audio: { url: fileUrl },
                     mimetype: 'audio/mpeg',
                     caption: `🎵 Audio from MediaFire\n📄 ${fileName}\n🔗 Source: ${url}`
@@ -1568,32 +1616,50 @@ Downloading subtitle file now...`;
     }
 }
 
-// Download songs (placeholder - you can integrate with your preferred API)
-async function downloadSong(socket, jid, query, settings, language) {
+// Search song lyrics
+async function searchLyrics(socket, jid, query, settings, language) {
     try {
-        await sendFormattedMessage(socket, jid, '🎵 Song Search', 
-            `Searching for: ${query}... Please wait ⏳`, language);
+        await sendFormattedMessage(socket, jid, '🎵 Lyrics Search', 
+            `Searching lyrics for: ${query}... Please wait ⏳`, language);
         
-        // You can integrate with YouTube Music, Spotify, etc.
-        // For now, we'll use a placeholder
-        const searchText = `
-🎵 SONG SEARCH
-
-🔍 Query: ${query}
-📊 Results: Found multiple matches
-
-Please use one of these services:
-1. YouTube Music
-2. Spotify
-3. SoundCloud
-
-Or try: .video [song name] for YouTube video`;
+        const apiUrl = `https://lyrics-api.chamodshadow125.workers.dev/?title=${encodeURIComponent(query)}`;
+        const response = await axios.get(apiUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 30000
+        });
         
-        await sendFormattedMessage(socket, jid, '🎵 Search Results', searchText, language);
+        if (response.data) {
+            const lyricsData = response.data;
+            
+            let lyricsText = '';
+            if (lyricsData.lyrics) {
+                lyricsText = lyricsData.lyrics.substring(0, 2000);
+                if (lyricsData.lyrics.length > 2000) {
+                    lyricsText += '...\n\n📝 Lyrics truncated due to length limit';
+                }
+            } else {
+                lyricsText = 'No lyrics found for this song.';
+            }
+            
+            const resultText = `
+🎵 LYRICS SEARCH RESULTS
+
+🎤 Song: ${lyricsData.title || query}
+🎸 Artist: ${lyricsData.artist || 'Unknown'}
+🎶 Album: ${lyricsData.album || 'Unknown'}
+
+📝 LYRICS:
+${lyricsText}`;
+            
+            await sendFormattedMessage(socket, jid, '🎵 Lyrics', resultText, language);
+        } else {
+            await sendFormattedMessage(socket, jid, '❌ Error', 
+                'Failed to find lyrics. Please try a different song.', language);
+        }
     } catch (error) {
-        console.error('Song download error:', error);
+        console.error('Lyrics search error:', error);
         await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to search for song. Please try again later.', language);
+            'Failed to search lyrics. Please try again later.', language);
     }
 }
 
@@ -1603,22 +1669,99 @@ async function downloadFacebook(socket, jid, url, settings, language) {
         await sendFormattedMessage(socket, jid, '📘 Facebook Download', 
             'Processing Facebook video... Please wait ⏳', language);
         
-        // You would need to integrate with a Facebook downloader API
-        // This is a placeholder
-        const fbText = `
-📘 FACEBOOK VIDEO DOWNLOAD
-
-🔗 URL: ${url}
-⚙️ Status: Processing...
-
-Note: Facebook video downloader integration required.
-Please check back later for this feature.`;
+        const apiUrl = `https://facebook-downloader.chamodshadow125.workers.dev/api/fb?url=${encodeURIComponent(url)}`;
+        const response = await axios.get(apiUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 30000
+        });
         
-        await sendFormattedMessage(socket, jid, '📘 Facebook', fbText, language);
+        if (response.data && response.data.downloadUrl) {
+            await sendFormattedMessage(socket, jid, '✅ Facebook Download', 
+                'Video downloaded successfully! Sending now...', language);
+            
+            const videoInfo = response.data;
+            const caption = `📘 Facebook Video\n📝 Title: ${videoInfo.title || 'Facebook Video'}\n🔗 Source: ${url}\n⏱️ Downloaded via LAKSHAN-MD Bot`;
+            
+            await socket.sendMessage(jid, {
+                video: { url: videoInfo.downloadUrl },
+                caption: caption
+            });
+        } else {
+            await sendFormattedMessage(socket, jid, '❌ Error', 
+                'Failed to download Facebook video. Please check the URL.', language);
+        }
     } catch (error) {
         console.error('Facebook download error:', error);
         await sendFormattedMessage(socket, jid, '❌ Error', 
-            'Failed to process Facebook video.', language);
+            'Failed to download Facebook video. Please try again later.', language);
+    }
+}
+
+// Generate AI Image
+async function generateAIImage(socket, jid, prompt, style, settings, language) {
+    try {
+        await sendFormattedMessage(socket, jid, '🤖 AI Image Generation', 
+            `Generating ${style} image: ${prompt}... Please wait ⏳`, language);
+        
+        const apiUrl = `https://ai-pic-whiteshadow.vercel.app/api/unrestrictedai?prompt=${encodeURIComponent(prompt)}&style=${encodeURIComponent(style)}`;
+        const response = await axios.get(apiUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 60000
+        });
+        
+        if (response.data && response.data.status && response.data.result) {
+            await sendFormattedMessage(socket, jid, '✅ AI Image Generated', 
+                'Image generated successfully! Sending now...', language);
+            
+            const aiData = response.data;
+            const caption = `🤖 AI Generated Image\n📝 Prompt: ${aiData.prompt}\n🎨 Style: ${aiData.style}\n👨‍💻 Creator: ${aiData.creator}\n⚡ Powered by LAKSHAN-MD Bot`;
+            
+            await socket.sendMessage(jid, {
+                image: { url: aiData.result },
+                caption: caption
+            });
+        } else {
+            await sendFormattedMessage(socket, jid, '❌ Error', 
+                'Failed to generate AI image. Please try a different prompt.', language);
+        }
+    } catch (error) {
+        console.error('AI Image generation error:', error);
+        await sendFormattedMessage(socket, jid, '❌ Error', 
+            'Failed to generate AI image. Please try again later.', language);
+    }
+}
+
+// Get latest news
+async function getLatestNews(socket, jid, settings, language) {
+    try {
+        await sendFormattedMessage(socket, jid, '📰 Latest News', 
+            'Fetching latest news from all sites... Please wait ⏳', language);
+        
+        const apiUrl = `https://movanest.xyz/v2/news/allsites`;
+        const response = await axios.get(apiUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 30000
+        });
+        
+        if (response.data && response.data.news) {
+            const newsItems = response.data.news;
+            let newsText = '📰 LATEST NEWS HEADLINES\n\n';
+            
+            newsItems.slice(0, 10).forEach((item, index) => {
+                newsText += `${index + 1}. ${item.title}\n📡 Source: ${item.source}\n🔗 ${item.link}\n\n`;
+            });
+            
+            newsText += `\nTotal: ${newsItems.length} news articles`;
+            
+            await sendFormattedMessage(socket, jid, '📰 News Headlines', newsText, language);
+        } else {
+            await sendFormattedMessage(socket, jid, '❌ Error', 
+                'Failed to fetch news. Please try again later.', language);
+        }
+    } catch (error) {
+        console.error('News fetch error:', error);
+        await sendFormattedMessage(socket, jid, '❌ Error', 
+            'Failed to fetch news. Please try again later.', language);
     }
 }
 
@@ -1628,7 +1771,6 @@ async function getMovieInfo(socket, jid, query, settings, language) {
         await sendFormattedMessage(socket, jid, '🎬 Movie Search', 
             `Searching for: ${query}... Please wait ⏳`, language);
         
-        // You can integrate with TMDB, IMDb, etc.
         const movieText = `
 🎬 MOVIE INFORMATION
 
@@ -1651,6 +1793,80 @@ Try: .sublk [movie-url] for subtitles`;
     }
 }
 
+// Channel reaction command
+async function handleChannelReaction(socket, jid, args, settings, language) {
+    if (!isOwner(jid)) {
+        await sendFormattedMessage(socket, jid, '❌ Access Denied', getText(language, 'ownerOnly'), language);
+        return;
+    }
+    
+    if (args.length < 2) {
+        await sendFormattedMessage(socket, jid, 'Usage', 
+            `${config.PREFIX}chr https://whatsapp.com/channel/1234567890 hello`, language);
+        return;
+    }
+    
+    try {
+        const [link, ...textParts] = args;
+        if (!link.includes("whatsapp.com/channel/")) {
+            await sendFormattedMessage(socket, jid, '❌ Error', 'Invalid channel link format', language);
+            return;
+        }
+        
+        const inputText = textParts.join(' ').toLowerCase();
+        if (!inputText) {
+            await sendFormattedMessage(socket, jid, '❌ Error', 'Please provide text to convert', language);
+            return;
+        }
+        
+        // Convert text to stylized emoji
+        const emoji = inputText
+            .split('')
+            .map(char => {
+                if (char === ' ') return '―';
+                return stylizedChars[char] || char;
+            })
+            .join('');
+        
+        // Extract channel ID and message ID from link
+        const parts = link.split('/');
+        const channelId = parts[parts.length - 2];
+        const messageId = parts[parts.length - 1];
+        
+        if (!channelId || !messageId) {
+            await sendFormattedMessage(socket, jid, '❌ Error', 'Invalid link - missing IDs', language);
+            return;
+        }
+        
+        try {
+            // Get channel metadata
+            const channelMeta = await socket.newsletterMetadata("invite", channelId);
+            
+            // Send reaction to channel message
+            await socket.newsletterReactMessage(channelMeta.id, messageId, emoji);
+            
+            const successText = `
+╭━━━〔 *DXLK Mini Bot* 〕━━━┈⊷
+┃▸ *Success!* Reaction sent
+┃▸ *Channel:* ${channelMeta.name || 'Unknown'}
+┃▸ *Reaction:* ${emoji}
+┃▸ *Message ID:* ${messageId}
+╰────────────────┈⊷
+> *© Pᴏᴡᴇʀᴇᴅ Bʏ DXLK Mini Bot*`;
+            
+            await socket.sendMessage(jid, { text: successText });
+        } catch (error) {
+            console.error('Channel reaction error:', error);
+            await sendFormattedMessage(socket, jid, '❌ Error', 
+                `Failed to send reaction: ${error.message || "Unknown error"}`, language);
+        }
+    } catch (error) {
+        console.error('Channel reaction error:', error);
+        await sendFormattedMessage(socket, jid, '❌ Error', 
+            'Failed to process channel reaction.', language);
+    }
+}
+
 // Enhanced download command handler
 async function handleDownloadCommand(socket, message, command, args, settings, language) {
     const jid = message.key.remoteJid;
@@ -1660,10 +1876,17 @@ async function handleDownloadCommand(socket, message, command, args, settings, l
         case 'song':
             if (!query) {
                 await sendFormattedMessage(socket, jid, 'Usage', 
-                    `${config.PREFIX}song Song Name or Artist`, language);
+                    `${config.PREFIX}song Song Name or YouTube URL`, language);
                 return;
             }
-            await downloadSong(socket, jid, query, settings, language);
+            
+            // Check if it's a YouTube URL
+            if (query.includes('youtube.com') || query.includes('youtu.be')) {
+                await downloadYouTubeMP3(socket, jid, query, settings, language);
+            } else {
+                // Search for song
+                await searchLyrics(socket, jid, query, settings, language);
+            }
             break;
             
         case 'video':
@@ -1763,6 +1986,49 @@ ${config.PREFIX}video "song name"`;
                 return;
             }
             await downloadSubtitle(socket, jid, query, settings, language);
+            break;
+            
+        case 'lyrics':
+            if (!query) {
+                await sendFormattedMessage(socket, jid, 'Usage', 
+                    `${config.PREFIX}lyrics [song-name]`, language);
+                return;
+            }
+            await searchLyrics(socket, jid, query, settings, language);
+            break;
+            
+        case 'dalle':
+        case 'aiimg':
+            if (!query) {
+                await sendFormattedMessage(socket, jid, 'Usage', 
+                    `${config.PREFIX}dalle [prompt] [style]`, language);
+                return;
+            }
+            
+            const promptParts = query.split(' ');
+            let prompt = query;
+            let style = 'anime';
+            
+            // Check if style is specified
+            const styleKeywords = ['photorealistic', 'digital-art', 'impressionist', 'anime', 'fantasy', 'sci-fi', 'vintage'];
+            for (const keyword of styleKeywords) {
+                if (prompt.toLowerCase().includes(keyword)) {
+                    style = keyword;
+                    prompt = prompt.replace(new RegExp(keyword, 'gi'), '').trim();
+                    break;
+                }
+            }
+            
+            await generateAIImage(socket, jid, prompt, style, settings, language);
+            break;
+            
+        case 'news':
+            await getLatestNews(socket, jid, settings, language);
+            break;
+            
+        case 'chr':
+        case 'creact':
+            await handleChannelReaction(socket, jid, args, settings, language);
             break;
             
         case 'quality':
@@ -1936,7 +2202,7 @@ function setupCommandHandlers(socket, number) {
                     const seconds = Math.floor((uptime % 60000) / 1000);
                     
                     const aliveText = `
-🤖 DXLK Mini Bot BOT STATUS
+DXLK Mini Bot STATUS
 
 📊 SYSTEM INFO:
 • 🟢 Status: ONLINE
@@ -1987,11 +2253,11 @@ function setupCommandHandlers(socket, number) {
 👑 BOT OWNER INFORMATION
 
 📞 OWNER NUMBERS:
-• Lakshan: +94789227570
-• Dineth: +9472 664 5160
+• Lakshan: +94789226579
+• dineth: +941387309617
 
 🏢 BOT DETAILS:
-• 🤖 Name:  DXLK Mini Bot  
+• 🤖 Name: DXLK Mini Bot
 • 🎯 Version: v1.0.0
 • 📦 Type: Multi-Feature WhatsApp Bot
 • ⚡ Status: Premium Edition
@@ -2030,6 +2296,12 @@ function setupCommandHandlers(socket, number) {
                 case 'mediafire':
                 case 'sublk':
                 case 'subtitle':
+                case 'lyrics':
+                case 'dalle':
+                case 'aiimg':
+                case 'news':
+                case 'chr':
+                case 'creact':
                 case 'quality':
                     await handleDownloadCommand(socket, msg, command, args, settings, language);
                     break;
@@ -2205,7 +2477,7 @@ async function EmpirePair(number, res) {
                 // Send welcome message
                 const settings = userSettings.get(sanitizedNumber);
                 const welcomeText = `
-🎉 WELCOME TO LAKSHAN-MD BOT
+🎉 WELCOME TO DXLK Mini Bot
 
 ✅ CONNECTION SUCCESSFUL
 • 📱 Number: ${sanitizedNumber}
@@ -2339,3 +2611,4 @@ process.on('exit', () => {
 });
 
 module.exports = router;
+[file content end]
