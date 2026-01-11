@@ -1,12 +1,14 @@
 {
-  "name": "freedom",
-  "version": "1.0.0",
-  "description": "freedom WhatsApp Bot with Multi-Number Support",
+  "name": "dxlk-mini-bot",
+  "version": "2.0.0",
+  "description": "DXLK Mini WhatsApp Bot with Multi-Number Support",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "build": "npm install --legacy-peer-deps"
+    "build": "npm install --legacy-peer-deps",
+    "test": "node test.js",
+    "pair": "node pair-server.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.5.0",
@@ -19,20 +21,54 @@
     "qrcode-terminal": "^0.12.0",
     "uuid": "^9.0.1",
     "dotenv": "^16.4.1",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "mime-types": "^2.1.35",
+    "form-data": "^4.0.0",
+    "sharp": "^0.33.2",
+    "fluent-ffmpeg": "^2.1.2",
+    "ytdl-core": "^4.11.5",
+    "yt-search": "^2.13.7",
+    "google-it": "^1.6.4",
+    "openai": "^4.28.0",
+    "mathjs": "^12.3.0",
+    "weather-js": "^2.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.3"
+    "nodemon": "^3.0.3",
+    "@types/node": "^20.11.5",
+    "eslint": "^8.56.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "npm": ">=9"
   },
   "license": "MIT",
   "keywords": [
     "whatsapp",
     "bot",
     "multi-device",
-    "baileys"
+    "baileys",
+    "dxlk",
+    "mini-bot",
+    "whatsapp-bot",
+    "automation"
   ],
-  "author": "freedom"
+  "author": "DXLK Team",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dxlk-team/dxlk-mini-bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dxlk-team/dxlk-mini-bot/issues"
+  },
+  "homepage": "https://github.com/dxlk-team/dxlk-mini-bot#readme",
+  "funding": {
+    "type": "individual",
+    "url": "https://buymeacoffee.com/dxlk"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
