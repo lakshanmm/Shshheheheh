@@ -1,5 +1,4 @@
-[file name]: pair.js
-[file content begin]
+
 const express = require('express');
 const fs = require('fs-extra');
 const path = require('path');
@@ -2611,4 +2610,4 @@ process.on('exit', () => {
 });
 
 module.exports = router;
-[file content end]
+
