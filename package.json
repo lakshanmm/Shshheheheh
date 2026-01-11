@@ -1,49 +1,46 @@
 {
   "name": "freedom",
   "version": "1.0.2",
-  "description": "freedom WhatsApp Bot with Multi-Number Support and Advanced Features",
+  "description": "freedom WhatsApp Bot with Multi-Number Support",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
     "vercel-build": "npm install --legacy-peer-deps",
-    "test": "echo \"No tests specified\" && exit 0"
+    "render-build": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.5.0",
     "express": "^4.19.2",
     "fs-extra": "^11.2.0",
     "pino": "^9.0.0",
-    "jimp": "^0.22.12",
     "@octokit/rest": "^21.0.0",
     "axios": "^1.7.9",
     "moment-timezone": "^0.5.45",
     "cheerio": "^1.0.0-rc.12",
-    "crypto": "^1.0.1",
     "node-fetch": "^3.3.2",
-    "form-data": "^4.0.0",
     "qrcode-terminal": "^0.12.0",
-    "sharp": "^0.33.5",
-    "fluent-ffmpeg": "^2.1.2",
     "ytdl-core": "^4.11.5",
-    "spotify-web-api-node": "^5.0.2",
     "translate-google": "^1.5.0",
     "google-it": "^1.7.0",
     "weather-js": "^2.0.0",
-    "g-i-s": "^2.1.11",
     "openai": "^4.0.0",
-    "pdfkit": "^0.14.0",
-    "node-html-to-image": "^3.3.0",
     "uuid": "^9.0.1",
     "dotenv": "^16.4.1"
   },
+  "optionalDependencies": {
+    "jimp": "^1.6.0",
+    "sharp": "^0.33.5",
+    "fluent-ffmpeg": "^2.1.2",
+    "spotify-web-api-node": "^5.0.2",
+    "g-i-s": "^2.1.11",
+    "pdfkit": "^0.14.0"
+  },
   "devDependencies": {
-    "nodemon": "^3.0.3",
-    "@types/node": "^20.0.0"
+    "nodemon": "^3.0.3"
   },
   "engines": {
-    "node": ">=18",
-    "npm": ">=9"
+    "node": ">=18"
   },
   "license": "MIT",
   "keywords": [
@@ -51,24 +48,7 @@
     "bot",
     "multi-device",
     "baileys",
-    "whatsapp-bot",
-    "whatsapp-api",
-    "freedom-md",
-    "media-downloader",
-    "ai-bot",
-    "multi-number"
+    "freedom-md"
   ],
-  "author": "freedom",
-  "contributors": [
-    "Lakshan",
-    "Savendra"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/your-username/freedom-md.git"
-  },
-  "bugs": {
-    "url": "https://github.com/your-username/freedom-md/issues"
-  },
-  "homepage": "https://github.com/your-username/freedom-md#readme"
+  "author": "freedom"
 }
