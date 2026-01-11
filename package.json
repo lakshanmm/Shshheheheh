@@ -1,40 +1,25 @@
 {
   "name": "freedom",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "description": "freedom WhatsApp Bot with Multi-Number Support",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "vercel-build": "npm install --legacy-peer-deps",
-    "render-build": "npm install --legacy-peer-deps"
+    "build": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.5.0",
     "express": "^4.19.2",
     "fs-extra": "^11.2.0",
     "pino": "^9.0.0",
-    "@octokit/rest": "^21.0.0",
     "axios": "^1.7.9",
     "moment-timezone": "^0.5.45",
     "cheerio": "^1.0.0-rc.12",
-    "node-fetch": "^3.3.2",
     "qrcode-terminal": "^0.12.0",
-    "ytdl-core": "^4.11.5",
-    "translate-google": "^1.5.0",
-    "google-it": "^1.7.0",
-    "weather-js": "^2.0.0",
-    "openai": "^4.0.0",
     "uuid": "^9.0.1",
-    "dotenv": "^16.4.1"
-  },
-  "optionalDependencies": {
-    "jimp": "^1.6.0",
-    "sharp": "^0.33.5",
-    "fluent-ffmpeg": "^2.1.2",
-    "spotify-web-api-node": "^5.0.2",
-    "g-i-s": "^2.1.11",
-    "pdfkit": "^0.14.0"
+    "dotenv": "^16.4.1",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"
@@ -47,8 +32,7 @@
     "whatsapp",
     "bot",
     "multi-device",
-    "baileys",
-    "freedom-md"
+    "baileys"
   ],
   "author": "freedom"
 }
